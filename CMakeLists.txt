@@ -15,6 +15,26 @@ find_package(catkin REQUIRED COMPONENTS
   nav_msgs
   message_generation
   tf
+  base_local_planner
+  costmap_2d
+  costmap_converter
+  cmake_modules
+  dynamic_reconfigure
+  geometry_msgs
+  interactive_markers
+  message_generation
+  nav_core
+  nav_msgs
+  mbf_costmap_core
+  mbf_msgs
+  roscpp
+  std_msgs
+  pluginlib
+  tf2
+  tf2_eigen
+  tf2_geometry_msgs
+  tf2_ros
+  visualization_msgs
   # obstacle_detector
 )
 
@@ -32,10 +52,25 @@ generate_messages(
 )
 
 catkin_package(
- INCLUDE_DIRS include
-#  LIBRARIES adaptive_open_local_planner
- CATKIN_DEPENDS message_runtime std_msgs
-#  DEPENDS system_lib
+ INCLUDE_DIRS include ${EXTERNAL_INCLUDE_DIRS}
+ LIBRARIES teb_local_planner ${EXTERNAL_LIBS}
+ CATKIN_DEPENDS
+ base_local_planner
+ costmap_2d
+ costmap_converter
+ geometry_msgs
+ interactive_markers
+ message_runtime
+ nav_core
+ nav_msgs
+ pluginlib
+ roscpp
+ mbf_costmap_core
+ std_msgs
+       tf2
+       tf2_ros
+ visualization_msgs
+ DEPENDS SUITESPARSE G2O
 )
 
 ###########
@@ -44,6 +79,7 @@ catkin_package(
 
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
+include_directories(include)
 include_directories(
 include
 ${catkin_INCLUDE_DIRS}
@@ -54,13 +90,35 @@ add_library(helpers
   src/planner_helpers.cpp
   src/visualization_helpers.cpp
 )
+add_library(adaptive_open_local_planner
+   src/timed_elastic_band.cpp
+   src/optimal_planner.cpp
+   src/obstacles.cpp
+   src/visualization.cpp
+   src/recovery_behaviors.cpp
+   src/teb_config.cpp
+   src/homotopy_class_planner.cpp
+   src/teb_local_planner_ros.cpp
+   src/graph_search.cpp
+)
 
-add_executable(${PROJECT_NAME}_node src/adaptive_open_local_planner_node.cpp)
-target_link_libraries(${PROJECT_NAME}_node helpers)
+# Dynamic reconfigure: make sure configure headers are built before any node using them
+add_dependencies(adaptive_open_local_planner ${PROJECT_NAME}_gencfg)
+# Generate messages before compiling the lib
+add_dependencies(adaptive_open_local_planner ${PROJECT_NAME}_generate_messages_cpp)
 
+target_link_libraries(adaptive_open_local_planner
+   ${EXTERNAL_LIBS}
+   ${catkin_LIBRARIES}
+)
 
-## Specify libraries to link a library or executable target against
-target_link_libraries(${PROJECT_NAME}_node
-  ${catkin_LIBRARIES}
+## Build additional executables
+
+add_executable(test_optim_node src/test_optim_node.cpp)
+
+target_link_libraries(test_optim_node
+adaptive_open_local_planner
+   ${EXTERNAL_LIBS}
+   ${catkin_LIBRARIES}
 )
 

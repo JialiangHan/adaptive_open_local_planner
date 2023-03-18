@@ -7,7 +7,8 @@
 #include <boost/geometry.hpp>
 #include <boost/geometry/geometries/point_xy.hpp>
 #include <boost/geometry/geometries/polygon.hpp>
-
+namespace adaptive_open_local_planner
+{
 #define MIN(x, y) (x <= y ? x : y)
 #define MAX(x, y) (x >= y ? x : y)
 
@@ -116,3 +117,4 @@ public:
         return bg::intersects(poly1, poly2);
     }
 };
+}
