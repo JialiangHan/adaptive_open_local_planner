@@ -70,4 +70,4 @@ namespace adaptive_open_local_planner
             return v;
         }
     };
-}
+};

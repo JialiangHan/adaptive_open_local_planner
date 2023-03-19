@@ -151,22 +151,6 @@ namespace adaptive_open_local_planner
         box_obstacle_marker.points.push_back(p);
     }
 
-    void VisualizationHelpers::createGlobalPathMarker(const std::vector<Waypoint> &global_path, nav_msgs::Path &path)
-    {
-        path.header.frame_id = "map";
-
-        for (unsigned int i = 0; i < global_path.size(); i++)
-        {
-            geometry_msgs::PoseStamped pose;
-            pose.header.frame_id = "map";
-            pose.pose.position.x = global_path[i].x;
-            pose.pose.position.y = global_path[i].y;
-            geometry_msgs::Quaternion pose_quat = tf::createQuaternionMsgFromYaw(global_path[i].heading);
-            pose.pose.orientation = pose_quat;
-            path.poses.push_back(pose);
-        }
-    }
-
     void VisualizationHelpers::createExtractedPathMarker(const std::vector<Waypoint> &extracted_path, nav_msgs::Path &path)
     {
         path.header.frame_id = "map";

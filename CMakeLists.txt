@@ -19,7 +19,6 @@ find_package(catkin REQUIRED COMPONENTS
   costmap_2d
   costmap_converter
   cmake_modules
-  dynamic_reconfigure
   geometry_msgs
   interactive_markers
   message_generation
@@ -35,15 +34,13 @@ find_package(catkin REQUIRED COMPONENTS
   tf2_geometry_msgs
   tf2_ros
   visualization_msgs
-  # obstacle_detector
 )
 
 ## Generate messages in the 'msg' folder
-add_message_files(
-  FILES
-  Waypoint.msg
-  WaypointArray.msg
-)
+# add_message_files(
+#   FILES
+
+# )
 
 ## Generate added messages and services with any dependencies listed here
 generate_messages(
@@ -70,7 +67,6 @@ catkin_package(
        tf2
        tf2_ros
  visualization_msgs
- DEPENDS SUITESPARSE G2O
 )
 
 ###########
@@ -91,19 +87,13 @@ add_library(helpers
   src/visualization_helpers.cpp
 )
 add_library(adaptive_open_local_planner
-   src/timed_elastic_band.cpp
-   src/optimal_planner.cpp
+  src/adaptive_open_local_planner_ros.cpp
    src/obstacles.cpp
-   src/visualization.cpp
-   src/recovery_behaviors.cpp
-   src/teb_config.cpp
-   src/homotopy_class_planner.cpp
-   src/teb_local_planner_ros.cpp
-   src/graph_search.cpp
+   src/planner_helpers.cpp
+   src/visualization_helpers.cpp
 )
 
-# Dynamic reconfigure: make sure configure headers are built before any node using them
-add_dependencies(adaptive_open_local_planner ${PROJECT_NAME}_gencfg)
+
 # Generate messages before compiling the lib
 add_dependencies(adaptive_open_local_planner ${PROJECT_NAME}_generate_messages_cpp)
 
@@ -114,11 +104,11 @@ target_link_libraries(adaptive_open_local_planner
 
 ## Build additional executables
 
-add_executable(test_optim_node src/test_optim_node.cpp)
+# add_executable(test_optim_node src/test_optim_node.cpp)
 
-target_link_libraries(test_optim_node
-adaptive_open_local_planner
-   ${EXTERNAL_LIBS}
-   ${catkin_LIBRARIES}
-)
+# target_link_libraries(test_optim_node
+# adaptive_open_local_planner
+#    ${EXTERNAL_LIBS}
+#    ${catkin_LIBRARIES}
+# )
 

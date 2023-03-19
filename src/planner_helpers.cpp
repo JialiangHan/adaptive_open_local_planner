@@ -20,20 +20,6 @@ namespace adaptive_open_local_planner
 
         // ROS_INFO("Closest Global Waypoint Index = %d", min_index);
 
-        // if(min_index < int(global_path.size()-2))
-        // {
-        //     Waypoint curr, next;
-        //     curr.x = global_path[min_index].x;
-        //     curr.y = global_path[min_index].y;
-        //     next.x = global_path[min_index+1].x;
-        //     next.y = global_path[min_index+1].y;
-        //     double norm_curr = pointNorm(curr);
-        //     double norm_next = pointNorm(next);
-        //     double dot_pro = curr.x*next.x + curr.y*next.y;
-        //     double a = fixNegativeAngle(acos(dot_pro/(norm_curr*norm_next)));
-        //     if(a <= M_PI_2)
-        //         min_index = min_index + 1;
-        // }
         return min_index;
     }
 
@@ -272,7 +258,7 @@ namespace adaptive_open_local_planner
         return true;
     }
 
-    void PlannerHelpers::predictConstantTimeCostForTrajectory(std::vector<Waypoint> &path, const VehicleState &current_state)
+    void PlannerHelpers::predictConstantTimeCostForTrajectory(std::vector<Waypoint> &path, const VehicleState &current_state_in_map_frame)
     {
         if (path.size() == 0)
             return;
@@ -281,14 +267,14 @@ namespace adaptive_open_local_planner
             path[i].time_cost = -1;
 
         // TODO: less than ?? (min threshold)
-        if (current_state.speed < 0.1)
+        if (current_state_in_map_frame.speed < 0.1)
             return;
 
         RelativeInfo info;
         Waypoint car_pos;
-        car_pos.x = current_state.x;
-        car_pos.y = current_state.y;
-        car_pos.heading = current_state.yaw;
+        car_pos.x = current_state_in_map_frame.x;
+        car_pos.y = current_state_in_map_frame.y;
+        car_pos.heading = current_state_in_map_frame.yaw;
         getRelativeInfo(path, car_pos, info);
 
         double total_distance = 0;
@@ -301,7 +287,7 @@ namespace adaptive_open_local_planner
         for (int i = info.front_index; i < path.size(); i++)
         {
             total_distance += hypot(path[i].x - path[i - 1].x, path[i].y - path[i - 1].y);
-            accum_time = total_distance / current_state.speed;
+            accum_time = total_distance / current_state_in_map_frame.speed;
             path[i].time_cost = accum_time;
         }
     }
@@ -413,7 +399,7 @@ namespace adaptive_open_local_planner
 
     void PlannerHelpers::calculateLateralAndLongitudinalCostsStatic(std::vector<PathCost> &trajectory_costs, const std::vector<std::vector<Waypoint>> &roll_outs,
                                                                     const std::vector<Waypoint> &extracted_path, std::vector<Waypoint> &contour_points,
-                                                                    const VehicleState &current_state, visualization_msgs::Marker &car_footprint_marker,
+                                                                    const VehicleState &current_state_in_map_frame, visualization_msgs::Marker &car_footprint_marker,
                                                                     visualization_msgs::Marker &safety_box_marker,
                                                                     const double &vehicle_length, const double &vehicle_width,
                                                                     const double &wheelbase_length, const double &horizontal_safety_distance,
@@ -424,12 +410,12 @@ namespace adaptive_open_local_planner
         double critical_long_front_distance = wheelbase_length / 2.0 + vehicle_length / 2.0 + vertical_safety_distance;
         double critical_long_back_distance = vehicle_length / 2.0 + vertical_safety_distance - wheelbase_length / 2.0;
 
-        Mat3 invRotationMat(current_state.yaw - M_PI_2);
-        Mat3 invTranslationMat(current_state.x, current_state.y);
+        Mat3 invRotationMat(current_state_in_map_frame.yaw - M_PI_2);
+        Mat3 invTranslationMat(current_state_in_map_frame.x, current_state_in_map_frame.y);
 
         double corner_slide_distance = critical_lateral_distance / 2.0;
         double ratio_to_angle = corner_slide_distance / max_steer_angle;
-        double slide_distance = current_state.steer * ratio_to_angle;
+        double slide_distance = current_state_in_map_frame.steer * ratio_to_angle;
 
         Waypoint bottom_left;
         bottom_left.x = -vehicle_width / 2.0;
@@ -526,9 +512,9 @@ namespace adaptive_open_local_planner
         {
             RelativeInfo car_info;
             Waypoint car_pos;
-            car_pos.x = current_state.x;
-            car_pos.y = current_state.y;
-            car_pos.heading = current_state.yaw;
+            car_pos.x = current_state_in_map_frame.x;
+            car_pos.y = current_state_in_map_frame.y;
+            car_pos.heading = current_state_in_map_frame.yaw;
             // std::cout << "Car heading: " << car_pos.heading << std::endl;
             getRelativeInfo(extracted_path, car_pos, car_info);
 
@@ -716,5 +702,17 @@ namespace adaptive_open_local_planner
         }
 
         std::cout << "------------------------ " << std::endl;
+    }
+
+    void PlannerHelpers::convert(const std::vector<geometry_msgs::PoseStamped> &orig_global_plan, std::vector<Waypoint> &path)
+    {
+        for (const auto &item : orig_global_plan)
+        {
+            Waypoint point;
+            point.x = item.pose.position.x;
+            point.y = item.pose.position.y;
+            point.heading = tf::getYaw(item.pose.orientation);
+            path.emplace_back(point);
+        }
     }
 }

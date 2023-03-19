@@ -6,13 +6,12 @@
 #include "matrix.h"
 #include "polygon.h"
 #include "visualization_helpers.h"
-
+#include "obstacles.h"
 #include <math.h>
 #include <limits>
 #include <vector>
 // base local planner base class and utilities
 #include <nav_core/base_local_planner.h>
-#include <mbf_costmap_core/costmap_controller.h>
 #include <base_local_planner/goal_functions.h>
 #include <base_local_planner/odometry_helper_ros.h>
 #include <base_local_planner/costmap_model.h>
@@ -23,11 +22,9 @@
 #include <geometry_msgs/PoseStamped.h>
 #include <visualization_msgs/MarkerArray.h>
 #include <visualization_msgs/Marker.h>
-#include <costmap_converter/ObstacleMsg.h>
 #include <geometry_msgs/PoseArray.h>
 #include <geometry_msgs/Twist.h>
-#include "adaptive_open_local_planner/Waypoint.h"
-#include "adaptive_open_local_planner/WaypointArray.h"
+
 // transforms
 #include <tf2/utils.h>
 #include <tf2_ros/buffer.h>
@@ -36,7 +33,6 @@
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 // costmap
 #include <costmap_2d/costmap_2d_ros.h>
-#include <costmap_converter/costmap_converter_interface.h>
 
 // boost classes
 #include <boost/bind.hpp>
@@ -51,19 +47,19 @@ namespace adaptive_open_local_planner
      * interfaces, so the adaptive_open_local_planner plugin can be used both in move_base and move_base_flex (MBF).
      * @todo Escape behavior, more efficient obstacle handling
      */
-    class AdaptiveOpenLocalPlannerROS : public nav_core::BaseLocalPlanner, public mbf_costmap_core::CostmapController
+    class AdaptiveOpenLocalPlannerROS : public nav_core::BaseLocalPlanner
     {
 
     public:
         /**
          * @brief Default constructor of the teb plugin
          */
-        AdaptiveOpenLocalPlannerROS();
+        AdaptiveOpenLocalPlannerROS(){};
 
         /**
          * @brief  Destructor of the plugin
          */
-        ~AdaptiveOpenLocalPlannerROS();
+        ~AdaptiveOpenLocalPlannerROS(){};
 
         /**
          * @brief Initializes the teb plugin
@@ -136,8 +132,6 @@ namespace adaptive_open_local_planner
 
         // Functions for subscribing
         void odomCallback(const nav_msgs::Odometry::ConstPtr &odom_msg);
-        void obstaclesCallback(const obstacle_detector::Obstacles::ConstPtr &obstacle_msg);
-        void globalPathCallback(const junior_local_planner::WaypointArray::ConstPtr &global_path_msg);
 
         // Functions for publishing results
         void publishCmdVel();
@@ -158,14 +152,11 @@ namespace adaptive_open_local_planner
          * @todo Include properties for dynamic obstacles (e.g. using constant velocity model)
          */
         void updateObstacleContainerWithCostmap();
-
         /**
-         * @brief Update internal obstacle vector based on polygons provided by a costmap_converter plugin
-         * @remarks Requires a loaded costmap_converter plugin.
-         * @remarks All previous obstacles are cleared.
-         * @sa updateObstacleContainerWithCostmap
+         * @brief convert obstacle in teb into circle and box obstacles
+         *
          */
-        void updateObstacleContainerWithCostmapConverter();
+        void convertObstacle();
 
     private:
         // Definition of member variables
@@ -179,42 +170,14 @@ namespace adaptive_open_local_planner
         std::vector<BoxObstacle> box_obstacles;
 
         // internal objects (memory management owned)
-        PlannerInterfacePtr planner_;       //!< Instance of the underlying optimal planner class
-        ObstContainer obstacles_;           //!< Obstacle vector that should be considered during local trajectory optimization
-        ViaPointContainer via_points_;      //!< Container of via-points that should be considered during local trajectory optimization
-        TebVisualizationPtr visualization_; //!< Instance of the visualization class (local/global plan, obstacles, ...)
-        boost::shared_ptr<base_local_planner::CostmapModel> costmap_model_;
-        TebConfig cfg_; //!< Config class that stores and manages all related parameters
+
+        ObstContainer obstacles_; //!< Obstacle vector that should be considered during local trajectory optimization
 
         std::vector<geometry_msgs::PoseStamped> global_plan_; //!< Store the current global plan
 
         base_local_planner::OdometryHelperRos odom_helper_; //!< Provides an interface to receive the current velocity from the robot
 
-        pluginlib::ClassLoader<costmap_converter::BaseCostmapToPolygons> costmap_converter_loader_; //!< Load costmap converter plugins at runtime
-        boost::shared_ptr<costmap_converter::BaseCostmapToPolygons> costmap_converter_;             //!< Store the current costmap_converter
-
-        boost::shared_ptr<dynamic_reconfigure::Server<TebLocalPlannerReconfigureConfig>> dynamic_recfg_; //!< Dynamic reconfigure server to allow config modifications at runtime
-        ros::Subscriber custom_obst_sub_;                                                                //!< Subscriber for custom obstacles received via a ObstacleMsg.
-        boost::mutex custom_obst_mutex_;                                                                 //!< Mutex that locks the obstacle array (multi-threaded)
-        costmap_converter::ObstacleArrayMsg custom_obstacle_msg_;                                        //!< Copy of the most recent obstacle message
-
-        ros::Subscriber via_points_sub_; //!< Subscriber for custom via-points received via a Path msg.
-        bool custom_via_points_active_;  //!< Keep track whether valid via-points have been received from via_points_sub_
-        boost::mutex via_point_mutex_;   //!< Mutex that locks the via_points container (multi-threaded)
-
-        PoseSE2 robot_pose_;                  //!< Store current robot pose
-        PoseSE2 robot_goal_;                  //!< Store current robot goal
-        geometry_msgs::Twist robot_vel_;      //!< Store current robot translational and angular velocity (vx, vy, omega)
-        bool goal_reached_;                   //!< store whether the goal is reached or not
-        ros::Time time_last_infeasible_plan_; //!< Store at which time stamp the last infeasible plan was detected
-        int no_infeasible_plans_;             //!< Store how many times in a row the planner failed to find a feasible plan.
-        ros::Time time_last_oscillation_;     //!< Store at which time stamp the last oscillation was detected
-        RotType last_preferred_rotdir_;       //!< Store recent preferred turning direction
-        geometry_msgs::Twist last_cmd_;       //!< Store the last control command generated in computeVelocityCommands()
-
-        std::vector<geometry_msgs::Point> footprint_spec_; //!< Store the footprint of the robot
-        double robot_inscribed_radius_;                    //!< The radius of the inscribed circle of the robot (collision possible)
-        double robot_circumscribed_radius;                 //!< The radius of the circumscribed circle of the robot
+        bool goal_reached_; //!< store whether the goal is reached or not
 
         std::string global_frame_;     //!< The frame in which the controller will run
         std::string robot_base_frame_; //!< Used as the base frame id of the robot
@@ -270,10 +233,7 @@ namespace adaptive_open_local_planner
 
         // Subscribers and Publishers
         ros::Subscriber odom_sub;
-        ros::Subscriber obstacles_sub;
-        ros::Subscriber global_path_sub;
 
-        ros::Publisher global_path_rviz_pub;
         ros::Publisher extracted_path_rviz_pub;
         ros::Publisher current_pose_rviz_pub;
         ros::Publisher roll_outs_rviz_pub;
@@ -288,14 +248,14 @@ namespace adaptive_open_local_planner
 
         // TF
         tf2_ros::Buffer tf_buffer;
-        tf2_ros::TransformListener tf_listener;
 
         // Global Variables
-        bool b_global_path;
+        bool global_path_received;
         bool b_vehicle_state;
         bool b_obstacles;
 
-        VehicleState current_state;
+        VehicleState current_state_in_map_frame_;
+        VehicleState current_state_in_global_frame_;
         std::vector<Waypoint> global_path;
 
         int prev_closest_index;

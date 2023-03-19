@@ -448,6 +448,6 @@ namespace adaptive_open_local_planner
     return (point - Pb).norm();
   }
 
-} // namespace adaptive_open_local_planner
+}; // namespace adaptive_open_local_planner
 
 #endif /* DISTANCE_CALCULATIONS_H */

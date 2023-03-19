@@ -1,0 +1,10 @@
+<library path="lib/libadaptive_open_local_planner">
+	<class name="adaptive_open_local_planner/AdaptiveOpenLocalPlannerROS" type="adaptive_open_local_planner::AdaptiveOpenLocalPlannerROS" base_class_type="nav_core::BaseLocalPlanner">
+		<description>
+			The adaptive_open_local_planner package implements a plugin
+			to the base_local_planner of the 2D navigation stack.
+		</description>
+	</class>
+	
+</library>
+

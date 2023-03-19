@@ -74,4 +74,4 @@ namespace adaptive_open_local_planner
         double radius;
         double true_radius;
     } CircleObstacle;
-}
+};

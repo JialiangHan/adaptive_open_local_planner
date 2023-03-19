@@ -1108,6 +1108,6 @@ namespace adaptive_open_local_planner
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
   };
 
-} // namespace adaptive_open_local_planner
+}; // namespace adaptive_open_local_planner
 
 #endif /* OBSTACLES_H */

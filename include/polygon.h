@@ -117,4 +117,4 @@ public:
         return bg::intersects(poly1, poly2);
     }
 };
-}
+};

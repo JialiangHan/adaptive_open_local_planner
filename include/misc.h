@@ -149,6 +149,6 @@ namespace adaptive_open_local_planner
   template <typename T>
   inline const T &get_const_reference(const T &val, typename boost::disable_if<boost::is_pointer<T>>::type *dummy = 0) { return val; }
 
-} // namespace adaptive_open_local_planner
+}; // namespace adaptive_open_local_planner
 
 #endif /* MISC_H */

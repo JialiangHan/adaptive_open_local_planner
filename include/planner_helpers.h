@@ -2,7 +2,7 @@
 
 #include <ros/ros.h>
 #include <vector>
-
+#include <tf/tf.h>
 #include "struct_defs.h"
 #include "matrix.h"
 #include "polygon.h"
@@ -28,7 +28,7 @@ namespace adaptive_open_local_planner
         static void smoothPath(std::vector<Waypoint> &path, const double &smooth_tolerance, const double &smooth_data_weight, const double &smooth_weight);
         static double calculateAngleAndCost(std::vector<Waypoint> &path, const double &prev_cost);
         static bool getRelativeInfo(const std::vector<Waypoint> &path, const Waypoint &current_pos, RelativeInfo &info);
-        static void predictConstantTimeCostForTrajectory(std::vector<Waypoint> &path, const VehicleState &current_state);
+        static void predictConstantTimeCostForTrajectory(std::vector<Waypoint> &path, const VehicleState &current_state_in_map_frame);
         static double getExactDistanceOnTrajectory(const std::vector<Waypoint> &trajectory, const RelativeInfo &p1, const RelativeInfo &p2);
         static double checkTrajectoryForCollision(const std::vector<Waypoint> &trajectory, const std::vector<CircleObstacle> &circle_obstacles, const std::vector<BoxObstacle> &box_obstacles,
                                                   const double &safety_radius, const double &vehicle_width, const double &vehicle_length, const double &wheelbase_length,
@@ -36,7 +36,7 @@ namespace adaptive_open_local_planner
         static void calculateTransitionCosts(std::vector<PathCost> &trajectory_costs, const int &curr_trajectory_index, const double &roll_out_density);
         static void calculateLateralAndLongitudinalCostsStatic(std::vector<PathCost> &trajectory_costs, const std::vector<std::vector<Waypoint>> &roll_outs,
                                                                const std::vector<Waypoint> &extracted_path, std::vector<Waypoint> &contour_points,
-                                                               const VehicleState &current_state, visualization_msgs::Marker &car_footprint_marker,
+                                                               const VehicleState &current_state_in_map_frame, visualization_msgs::Marker &car_footprint_marker,
                                                                visualization_msgs::Marker &safety_box_marker,
                                                                const double &vehicle_length, const double &vehicle_width,
                                                                const double &wheelbase_length, const double &horizontal_safety_distance,
@@ -45,5 +45,7 @@ namespace adaptive_open_local_planner
         static void calculateCurvatureCosts(std::vector<PathCost> &trajectory_costs, const std::vector<std::vector<Waypoint>> &roll_outs);
         static void normalizeCosts(std::vector<PathCost> &trajectory_costs, const double &priority_weight,
                                    const double &transition_weight, const double &lat_weight, const double &long_weight, const double &curvature_weight);
+
+        static void convert(const std::vector<geometry_msgs::PoseStamped> &orig_global_plan, std::vector<Waypoint> &path);
     };
-}
+};
