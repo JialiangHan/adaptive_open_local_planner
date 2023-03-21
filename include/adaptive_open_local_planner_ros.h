@@ -43,19 +43,19 @@ namespace adaptive_open_local_planner
 
     /**
      * @class AdaptiveOpenLocalPlannerROS
-     * @brief Implements both nav_core::BaseLocalPlanner and mbf_costmap_core::CostmapController abstract
+     * @brief Implements both nav_core::BaseLocalPlanner
      * interfaces, so the adaptive_open_local_planner plugin can be used both in move_base and move_base_flex (MBF).
      * @todo Escape behavior, more efficient obstacle handling
      */
     class AdaptiveOpenLocalPlannerROS : public nav_core::BaseLocalPlanner
     {
-
     public:
         /**
          * @brief Default constructor of the teb plugin
          */
         AdaptiveOpenLocalPlannerROS(){};
-
+        AdaptiveOpenLocalPlannerROS(std::string name, tf2_ros::Buffer *tf,
+                                    costmap_2d::Costmap2DROS *costmap_ros);
         /**
          * @brief  Destructor of the plugin
          */
@@ -87,31 +87,13 @@ namespace adaptive_open_local_planner
          * @brief Given the current position, orientation, and velocity of the robot, compute velocity commands to send to the base.
          * @remark Extended version for MBF API
          * @param pose the current pose of the robot.
-         * @param velocity the current velocity of the robot.
          * @param cmd_vel Will be filled with the velocity command to be passed to the robot base.
          * @param message Optional more detailed outcome as a string
-         * @return Result code as described on ExePath action result:
-         *         SUCCESS         = 0
-         *         1..9 are reserved as plugin specific non-error results
-         *         FAILURE         = 100   Unspecified failure, only used for old, non-mfb_core based plugins
-         *         CANCELED        = 101
-         *         NO_VALID_CMD    = 102
-         *         PAT_EXCEEDED    = 103
-         *         COLLISION       = 104
-         *         OSCILLATION     = 105
-         *         ROBOT_STUCK     = 106
-         *         MISSED_GOAL     = 107
-         *         MISSED_PATH     = 108
-         *         BLOCKED_PATH    = 109
-         *         INVALID_PATH    = 110
-         *         TF_ERROR        = 111
-         *         NOT_INITIALIZED = 112
-         *         INVALID_PLUGIN  = 113
-         *         INTERNAL_ERROR  = 114
-         *         121..149 are reserved as plugin specific errors
+         * @return
+
          */
-        uint32_t computeVelocityCommands(const geometry_msgs::PoseStamped &pose, const geometry_msgs::TwistStamped &velocity,
-                                         geometry_msgs::TwistStamped &cmd_vel, std::string &message);
+        bool computeVelocityCommands(const geometry_msgs::PoseStamped &pose,
+                                     geometry_msgs::TwistStamped &cmd_vel);
 
         /**
          * @brief  Check if the goal pose has been achieved
@@ -122,25 +104,15 @@ namespace adaptive_open_local_planner
          */
         bool isGoalReached();
 
-        /**
-         * @brief Dummy version to satisfy MBF API
-         */
-        bool isGoalReached(double xy_tolerance, double yaw_tolerance) { return isGoalReached(); };
-
-        // Main Function
-        void mainTimerCallback(const ros::TimerEvent &timer_event);
-
         // Functions for subscribing
         void odomCallback(const nav_msgs::Odometry::ConstPtr &odom_msg);
-
-        // Functions for publishing results
-        void publishCmdVel();
 
         // Local Planning functions
         void extractGlobalPathSection(std::vector<Waypoint> &extracted_path);
         void generateRollOuts(const std::vector<Waypoint> &path, std::vector<std::vector<Waypoint>> &roll_outs);
-        PathCost doOneStepStatic(const std::vector<std::vector<Waypoint>> &roll_outs, const std::vector<Waypoint> &extracted_path,
-                                 std::vector<PathCost> &trajectory_costs);
+        void doOneStepStatic(const std::vector<std::vector<Waypoint>> &roll_outs, const std::vector<Waypoint> &extracted_path, std::vector<PathCost> &trajectory_costs, std::vector<Waypoint> &best_path);
+
+        void calculateVelocity(const std::vector<Waypoint> &best_path, float &velocity, float &steering_angle_rate);
 
     protected:
         /**
@@ -174,8 +146,6 @@ namespace adaptive_open_local_planner
         ObstContainer obstacles_; //!< Obstacle vector that should be considered during local trajectory optimization
 
         std::vector<geometry_msgs::PoseStamped> global_plan_; //!< Store the current global plan
-
-        base_local_planner::OdometryHelperRos odom_helper_; //!< Provides an interface to receive the current velocity from the robot
 
         bool goal_reached_; //!< store whether the goal is reached or not
 
@@ -241,10 +211,6 @@ namespace adaptive_open_local_planner
         ros::Publisher safety_box_rviz_pub;
         ros::Publisher car_footprint_rviz_pub;
         ros::Publisher box_obstacle_rviz_pub;
-        ros::Publisher cmd_vel_pub;
-
-        // Timer
-        ros::Timer timer;
 
         // TF
         tf2_ros::Buffer tf_buffer;

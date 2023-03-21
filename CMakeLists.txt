@@ -3,7 +3,7 @@ project(adaptive_open_local_planner)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
 # add_compile_options(-std=c++11)
-
+set(CMAKE_BUILD_TYPE Debug)
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
@@ -17,15 +17,12 @@ find_package(catkin REQUIRED COMPONENTS
   tf
   base_local_planner
   costmap_2d
-  costmap_converter
   cmake_modules
   geometry_msgs
   interactive_markers
   message_generation
   nav_core
   nav_msgs
-  mbf_costmap_core
-  mbf_msgs
   roscpp
   std_msgs
   pluginlib
@@ -35,12 +32,6 @@ find_package(catkin REQUIRED COMPONENTS
   tf2_ros
   visualization_msgs
 )
-
-## Generate messages in the 'msg' folder
-# add_message_files(
-#   FILES
-
-# )
 
 ## Generate added messages and services with any dependencies listed here
 generate_messages(
@@ -54,7 +45,6 @@ catkin_package(
  CATKIN_DEPENDS
  base_local_planner
  costmap_2d
- costmap_converter
  geometry_msgs
  interactive_markers
  message_runtime
@@ -62,16 +52,11 @@ catkin_package(
  nav_msgs
  pluginlib
  roscpp
- mbf_costmap_core
  std_msgs
        tf2
        tf2_ros
  visualization_msgs
 )
-
-###########
-## Build ##
-###########
 
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
@@ -93,9 +78,6 @@ add_library(adaptive_open_local_planner
    src/visualization_helpers.cpp
 )
 
-
-# Generate messages before compiling the lib
-add_dependencies(adaptive_open_local_planner ${PROJECT_NAME}_generate_messages_cpp)
 
 target_link_libraries(adaptive_open_local_planner
    ${EXTERNAL_LIBS}

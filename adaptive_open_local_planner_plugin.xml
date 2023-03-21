@@ -5,6 +5,5 @@
 			to the base_local_planner of the 2D navigation stack.
 		</description>
 	</class>
-	
 </library>
 

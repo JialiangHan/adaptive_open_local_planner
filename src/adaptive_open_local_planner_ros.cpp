@@ -1,4 +1,5 @@
 #include "adaptive_open_local_planner_ros.h"
+#include <pluginlib/class_list_macros.h>
 
 // register this planner both as a BaseLocalPlanner
 PLUGINLIB_EXPORT_CLASS(adaptive_open_local_planner::AdaptiveOpenLocalPlannerROS, nav_core::BaseLocalPlanner)
@@ -6,6 +7,12 @@ PLUGINLIB_EXPORT_CLASS(adaptive_open_local_planner::AdaptiveOpenLocalPlannerROS,
 namespace adaptive_open_local_planner
 {
 
+    AdaptiveOpenLocalPlannerROS::AdaptiveOpenLocalPlannerROS(std::string name, tf2_ros::Buffer *tf,
+                                                             costmap_2d::Costmap2DROS *costmap_ros)
+        : costmap_ros_(NULL), tf_(NULL), initialized_(false)
+    {
+        initialize(name, tf, costmap_ros);
+    }
     void AdaptiveOpenLocalPlannerROS::initialize(std::string name, tf2_ros::Buffer *tf, costmap_2d::Costmap2DROS *costmap_ros)
     {
         if (!initialized_)
@@ -93,10 +100,6 @@ namespace adaptive_open_local_planner
             safety_box_rviz_pub = nh.advertise<visualization_msgs::Marker>(safety_box_rviz_topic_, 1, true);
             car_footprint_rviz_pub = nh.advertise<visualization_msgs::Marker>(car_footprint_rviz_topic_, 1, true);
             box_obstacle_rviz_pub = nh.advertise<visualization_msgs::Marker>(box_obstacle_rviz_topic_, 1, true);
-            cmd_vel_pub = nh.advertise<geometry_msgs::Twist>(cmd_vel_topic_, 1);
-
-            // timer
-            timer = nh.createTimer(ros::Duration(1.0 / planning_frequency_), &AdaptiveOpenLocalPlannerROS::mainTimerCallback, this);
 
             global_path_received = false;
             b_vehicle_state = false;
@@ -118,9 +121,6 @@ namespace adaptive_open_local_planner
             global_frame_ = costmap_ros_->getGlobalFrameID();
 
             robot_base_frame_ = costmap_ros_->getBaseFrameID();
-
-            // init the odom helper to receive the robot's velocity from odom messages
-            odom_helper_.setOdomTopic(cfg_.odom_topic);
 
             // set initialized flag
             initialized_ = true;
@@ -153,25 +153,60 @@ namespace adaptive_open_local_planner
 
     bool AdaptiveOpenLocalPlannerROS::computeVelocityCommands(geometry_msgs::Twist &cmd_vel)
     {
-        std::string dummy_message;
+
         geometry_msgs::PoseStamped dummy_pose;
-        geometry_msgs::TwistStamped dummy_velocity, cmd_vel_stamped;
-        uint32_t outcome = computeVelocityCommands(dummy_pose, dummy_velocity, cmd_vel_stamped, dummy_message);
+        geometry_msgs::TwistStamped cmd_vel_stamped;
+        bool outcome = computeVelocityCommands(dummy_pose, cmd_vel_stamped);
         cmd_vel = cmd_vel_stamped.twist;
-        return outcome == mbf_msgs::ExePathResult::SUCCESS;
+        return outcome;
     }
-    // TODO:: fill out this function
-    uint32_t AdaptiveOpenLocalPlannerROS::computeVelocityCommands(const geometry_msgs::PoseStamped &pose, const geometry_msgs::TwistStamped &velocity,
-                                                                  geometry_msgs::TwistStamped &cmd_vel, std::string &message)
+
+    bool AdaptiveOpenLocalPlannerROS::computeVelocityCommands(const geometry_msgs::PoseStamped &pose, geometry_msgs::TwistStamped &cmd_vel)
     {
         // check if plugin initialized
         if (!initialized_)
         {
-            ROS_ERROR("teb_local_planner has not been initialized, please call initialize() before using this planner");
-            message = "teb_local_planner has not been initialized";
-            return mbf_msgs::ExePathResult::NOT_INITIALIZED;
+            ROS_ERROR("adaptive_open_local_planner has not been initialized, please call initialize() before using this planner");
+            return false;
         }
+        static uint32_t seq = 0;
+        cmd_vel.header.seq = seq++;
+        cmd_vel.header.stamp = ros::Time::now();
+        cmd_vel.header.frame_id = robot_base_frame_;
+        cmd_vel.twist.linear.x = cmd_vel.twist.linear.y = cmd_vel.twist.angular.z = 0;
+        goal_reached_ = false;
         convertObstacle();
+        if (!global_path_received)
+        {
+            ROS_WARN("Global path not received!");
+            return false;
+        }
+        if (!b_vehicle_state)
+        {
+            ROS_WARN("Odom data not received!");
+            return false;
+        }
+
+        if (!b_obstacles)
+        {
+            ROS_WARN("Obstacles data not received!");
+            return false;
+        }
+
+        std::vector<Waypoint> extracted_path, best_path;
+        extractGlobalPathSection(extracted_path);
+
+        std::vector<std::vector<Waypoint>> roll_outs;
+        generateRollOuts(extracted_path, roll_outs);
+
+        std::vector<PathCost> trajectory_costs;
+        doOneStepStatic(roll_outs, extracted_path, trajectory_costs, best_path);
+        float velocity, steering_angle_rate;
+        calculateVelocity(best_path, velocity, steering_angle_rate);
+        cmd_vel.twist.linear.x = velocity;
+        cmd_vel.twist.linear.y = 0;
+        cmd_vel.twist.angular.z = steering_angle_rate;
+        return true;
     }
 
     bool AdaptiveOpenLocalPlannerROS::isGoalReached()
@@ -183,37 +218,6 @@ namespace adaptive_open_local_planner
             return true;
         }
         return false;
-    }
-
-    void AdaptiveOpenLocalPlannerROS::mainTimerCallback(const ros::TimerEvent &timer_event)
-    {
-        if (!global_path_received)
-        {
-            ROS_WARN("Karcher Local Planner Node: Global path not received!");
-            return;
-        }
-        if (!b_vehicle_state)
-        {
-            ROS_WARN("Karcher Local Planner Node: Odom data not received!");
-            return;
-        }
-
-        publishCmdVel();
-
-        if (!b_obstacles)
-        {
-            ROS_WARN("Karcher Local Planner Node: Obstacles data not received!");
-            return;
-        }
-
-        std::vector<Waypoint> extracted_path;
-        extractGlobalPathSection(extracted_path);
-
-        std::vector<std::vector<Waypoint>> roll_outs;
-        generateRollOuts(extracted_path, roll_outs);
-
-        std::vector<PathCost> trajectory_costs;
-        doOneStepStatic(roll_outs, extracted_path, trajectory_costs);
     }
 
     void AdaptiveOpenLocalPlannerROS::odomCallback(const nav_msgs::Odometry::ConstPtr &odom_msg)
@@ -256,21 +260,6 @@ namespace adaptive_open_local_planner
         geometry_msgs::PoseStamped pose;
         VisualizationHelpers::createCurrentPoseMarker(current_state_in_map_frame_, pose);
         current_pose_rviz_pub.publish(pose);
-    }
-
-    void AdaptiveOpenLocalPlannerROS::publishCmdVel()
-    {
-        geometry_msgs::Twist cmd_vel_msg;
-
-        cmd_vel_msg.linear.x = 0.5;
-        cmd_vel_msg.linear.y = 0;
-        cmd_vel_msg.linear.z = 0;
-
-        cmd_vel_msg.angular.x = 0;
-        cmd_vel_msg.angular.y = 0;
-        cmd_vel_msg.angular.z = 0;
-
-        cmd_vel_pub.publish(cmd_vel_msg);
     }
 
     void AdaptiveOpenLocalPlannerROS::extractGlobalPathSection(std::vector<Waypoint> &extracted_path)
@@ -546,13 +535,8 @@ namespace adaptive_open_local_planner
         roll_outs_rviz_pub.publish(roll_out_marker_array);
     }
 
-    PathCost AdaptiveOpenLocalPlannerROS::doOneStepStatic(const std::vector<std::vector<Waypoint>> &roll_outs, const std::vector<Waypoint> &extracted_path, std::vector<PathCost> &trajectory_costs)
+    void AdaptiveOpenLocalPlannerROS::doOneStepStatic(const std::vector<std::vector<Waypoint>> &roll_outs, const std::vector<Waypoint> &extracted_path, std::vector<PathCost> &trajectory_costs, std::vector<Waypoint> &best_path)
     {
-        PathCost bestTrajectory;
-        bestTrajectory.bBlocked = false;
-        bestTrajectory.closest_obj_distance = HORIZON_DISTANCE_;
-        bestTrajectory.closest_obj_velocity = 0;
-        bestTrajectory.index = -1;
 
         RelativeInfo car_info;
         Waypoint car_pos;
@@ -669,24 +653,15 @@ namespace adaptive_open_local_planner
 
         if (smallestIndex == -1)
         {
-            bestTrajectory.bBlocked = true;
-            bestTrajectory.lane_index = 0;
-            bestTrajectory.index = -1;
-            bestTrajectory.closest_obj_distance = smallestDistance;
-            bestTrajectory.closest_obj_velocity = velo_of_next;
         }
         else if (smallestIndex >= 0)
         {
-            bestTrajectory = trajectory_costs[smallestIndex];
+            best_path = roll_outs[smallestIndex];
         }
 
         visualization_msgs::MarkerArray weighted_roll_out_marker_array;
-        // viz_helper.createWeightedRollOutsMarker(roll_outs, trajectory_costs, smallestIndex, weighted_roll_out_marker_array);
         VisualizationHelpers::createWeightedRollOutsMarker(roll_outs, trajectory_costs, smallestIndex, weighted_roll_out_marker_array);
         weighted_trajectories_rviz_pub.publish(weighted_roll_out_marker_array);
-
-        // m_PrevIndex = currIndex;
-        return bestTrajectory;
     }
 
     void AdaptiveOpenLocalPlannerROS::updateObstacleContainerWithCostmap()
@@ -721,11 +696,12 @@ namespace adaptive_open_local_planner
         circle_obstacles.clear();
         box_obstacles.clear();
         float resolution = costmap_->getResolution();
-        for (const auto &element : obstacles_)
+
+        for (size_t i = 0; i < obstacles_.size(); i++)
         {
             CircleObstacle co;
-            co.x = element->x;
-            co.y = element->y;
+            co.x = obstacles_[i]->getCentroid().x();
+            co.y = obstacles_[i]->getCentroid().y();
             co.vx = 0;
             co.vy = 0;
             co.radius = resolution;
@@ -733,8 +709,8 @@ namespace adaptive_open_local_planner
             circle_obstacles.push_back(co);
 
             BoxObstacle bo;
-            bo.x = element->x;
-            bo.y = element->y;
+            bo.x = obstacles_[i]->getCentroid().x();
+            bo.y = obstacles_[i]->getCentroid().y();
             bo.heading = 0;
             bo.width = resolution;
             bo.length = resolution;
@@ -744,5 +720,17 @@ namespace adaptive_open_local_planner
             VisualizationHelpers::createBoxObstacleMarker(box_obstacles[i], box_obstacle_marker);
             box_obstacle_rviz_pub.publish(box_obstacle_marker);
         }
+    }
+
+    void AdaptiveOpenLocalPlannerROS::calculateVelocity(const std::vector<Waypoint> &best_path, float &velocity, float &steering_angle_rate)
+    {
+        // set dt to a constant value
+        float dt = 1;
+        float distance, angle_diff;
+        distance = distance2points(best_path[0], best_path[1]);
+        // TODO angle normalization is needed
+        angle_diff = best_path[1].heading - best_path[0].heading;
+        velocity = distance / dt;
+        steering_angle_rate = angle_diff / dt;
     }
 } // end namespace adaptive_open_local_planner
