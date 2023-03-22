@@ -32,7 +32,8 @@ find_package(catkin REQUIRED COMPONENTS
   tf2_ros
   visualization_msgs
 )
-
+FIND_PACKAGE(Glog REQUIRED)
+FIND_PACKAGE(Gflags)
 ## Generate added messages and services with any dependencies listed here
 generate_messages(
   DEPENDENCIES
@@ -71,6 +72,10 @@ add_library(helpers
   src/planner_helpers.cpp
   src/visualization_helpers.cpp
 )
+
+target_link_libraries(helpers
+       glog::glog 
+)
 add_library(adaptive_open_local_planner
   src/adaptive_open_local_planner_ros.cpp
    src/obstacles.cpp
@@ -82,6 +87,7 @@ add_library(adaptive_open_local_planner
 target_link_libraries(adaptive_open_local_planner
    ${EXTERNAL_LIBS}
    ${catkin_LIBRARIES}
+       glog::glog 
 )
 
 ## Build additional executables

@@ -10,6 +10,10 @@
 #include <math.h>
 #include <limits>
 #include <vector>
+
+#include "glog/logging.h"
+#include "gflags/gflags.h"
+
 // base local planner base class and utilities
 #include <nav_core/base_local_planner.h>
 #include <base_local_planner/goal_functions.h>

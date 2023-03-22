@@ -11,6 +11,19 @@ namespace adaptive_open_local_planner
                                                              costmap_2d::Costmap2DROS *costmap_ros)
         : costmap_ros_(NULL), tf_(NULL), initialized_(false)
     {
+        std::string log_dir = "/home/jialiang/Code/thesis_ws/src/adaptive_open_local_planner/log/adaptive_open_local_planner_";
+        for (int severity = 0; severity < google::NUM_SEVERITIES; ++severity)
+        {
+            google::SetLogDestination(severity, log_dir.c_str());
+            google::SetLogSymlink(severity, log_dir.c_str());
+        }
+        google::InitGoogleLogging("adaptive_open_local_planner");
+
+        google::InstallFailureSignalHandler();
+
+        google::EnableLogCleaner(5);
+        FLAGS_alsologtostderr = 1;
+        LOG(INFO) << "creating adaptive_open_local_planner planner";
         initialize(name, tf, costmap_ros);
     }
     void AdaptiveOpenLocalPlannerROS::initialize(std::string name, tf2_ros::Buffer *tf, costmap_2d::Costmap2DROS *costmap_ros)
