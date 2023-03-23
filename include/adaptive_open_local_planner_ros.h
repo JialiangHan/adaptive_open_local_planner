@@ -10,7 +10,7 @@
 #include <math.h>
 #include <limits>
 #include <vector>
-
+#include "parameter_manager.h"
 #include "glog/logging.h"
 #include "gflags/gflags.h"
 
@@ -37,10 +37,6 @@
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 // costmap
 #include <costmap_2d/costmap_2d_ros.h>
-
-// boost classes
-#include <boost/bind.hpp>
-#include <boost/shared_ptr.hpp>
 
 namespace adaptive_open_local_planner
 {
@@ -161,50 +157,6 @@ namespace adaptive_open_local_planner
 
         ros::NodeHandle nh;
 
-        // Hyperparameters
-        double planning_frequency_;
-
-        // Parameters
-        double MAX_SPEED_;               // max speed that planner should not exceed
-        double MAX_LOCAL_PLAN_DISTANCE_; // length of local trajectory roll outs
-        double PATH_DENSITY_;            // distance between waypoints of local trajectory
-        int ROLL_OUTS_NUMBER_;           // number of roll outs not including the center tracjectory (this number should be even)
-        double SAMPLING_TIP_MARGIN_;     // length of car tip margin
-        double SAMPLING_OUT_MARGIN_;     // length of roll in margin (??)
-        double ROLL_OUT_DENSITY_;        // distance between adjacent trajectories
-        double ROLL_IN_SPEED_FACTOR_;
-        double ROLL_IN_MARGIN_;
-        double LANE_CHANGE_SPEED_FACTOR_;
-        double HORIZON_DISTANCE_;
-
-        double HORIZONTAL_SAFETY_DISTANCE_;
-        double VERTICAL_SAFETY_DISTANCE_;
-        double MAX_STEER_ANGLE_;
-        double MIN_SPEED_;
-        double LATERAL_SKIP_DISTANCE_;
-
-        double MIN_FOLLOWING_DISTANCE_; // distance threshold for exiting following behaviour
-        double MAX_FOLLOWING_DISTANCE_; // distance threshold for entering following behaviour
-        double MIN_DISTANCE_TO_AVOID;   // distance threshold for obstacle avoidance behaviour
-
-        double VEHICLE_WIDTH_;
-        double VEHICLE_LENGTH_;
-        double WHEELBASE_LENGTH_;
-        double TURNING_RADIUS_;
-        double SAFETY_RADIUS_;
-
-        // Smoothing Weights
-        double SMOOTH_DATA_WEIGHT_;
-        double SMOOTH_WEIGHT_;
-        double SMOOTH_TOLERANCE_;
-
-        double PRIORITY_WEIGHT_;
-        double TRANSITION_WEIGHT_;
-        double LAT_WEIGHT_;
-        double LONG_WEIGHT_;
-        double COLLISION_WEIGHT_;
-        double CURVATURE_WEIGHT_;
-
         // Subscribers and Publishers
         ros::Subscriber odom_sub;
 
@@ -230,6 +182,8 @@ namespace adaptive_open_local_planner
 
         int prev_closest_index;
         double prev_cost;
+
+        ParameterManager params_;
 
     public:
         EIGEN_MAKE_ALIGNED_OPERATOR_NEW

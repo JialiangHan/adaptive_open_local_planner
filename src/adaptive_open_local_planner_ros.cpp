@@ -30,98 +30,26 @@ namespace adaptive_open_local_planner
     {
         if (!initialized_)
         {
-
-            ros::NodeHandle private_nh("~");
-
-            // Topics
-            std::string odom_topic_;
-            std::string obstacles_topic_;
-
-            std::string extracted_path_rviz_topic_;
-            std::string current_pose_rviz_topic_;
-            std::string roll_outs_rviz_topic_;
-            std::string weighted_trajectories_rviz_topic_;
-            std::string safety_box_rviz_topic_;
-            std::string car_footprint_rviz_topic_;
-            std::string box_obstacle_rviz_topic_;
-            std::string cmd_vel_topic_;
-            // TODO move all these read param into parameter manager
-            //  Parameters from launch file: topic names
-            ROS_ASSERT(private_nh.getParam("odom_topic", odom_topic_));
-            ROS_ASSERT(private_nh.getParam("obstacles_topic", obstacles_topic_));
-
-            ROS_ASSERT(private_nh.getParam("extracted_path_rviz_topic", extracted_path_rviz_topic_));
-            ROS_ASSERT(private_nh.getParam("current_pose_rviz_topic", current_pose_rviz_topic_));
-            ROS_ASSERT(private_nh.getParam("roll_outs_rviz_topic", roll_outs_rviz_topic_));
-            ROS_ASSERT(private_nh.getParam("weighted_trajectories_rviz_topic", weighted_trajectories_rviz_topic_));
-            ROS_ASSERT(private_nh.getParam("safety_box_rviz_topic", safety_box_rviz_topic_));
-            ROS_ASSERT(private_nh.getParam("car_footprint_rviz_topic", car_footprint_rviz_topic_));
-            ROS_ASSERT(private_nh.getParam("box_obstacle_rviz_topic", box_obstacle_rviz_topic_));
-            ROS_ASSERT(private_nh.getParam("cmd_vel_topic", cmd_vel_topic_));
-
-            // Hyperparameters
-            ROS_ASSERT(private_nh.getParam("planning_frequency", planning_frequency_));
-
-            // Parameters from launch file: Planner Parameters
-            ROS_ASSERT(private_nh.getParam("max_speed", MAX_SPEED_));
-            ROS_ASSERT(private_nh.getParam("max_local_plan_distance", MAX_LOCAL_PLAN_DISTANCE_));
-            ROS_ASSERT(private_nh.getParam("path_density", PATH_DENSITY_));
-            ROS_ASSERT(private_nh.getParam("roll_outs_number", ROLL_OUTS_NUMBER_));
-            ROS_ASSERT(private_nh.getParam("sampling_tip_margin", SAMPLING_TIP_MARGIN_));
-            ROS_ASSERT(private_nh.getParam("sampling_out_margin", SAMPLING_OUT_MARGIN_));
-            ROS_ASSERT(private_nh.getParam("roll_out_density", ROLL_OUT_DENSITY_));
-            ROS_ASSERT(private_nh.getParam("roll_in_speed_factor", ROLL_IN_SPEED_FACTOR_));
-            ROS_ASSERT(private_nh.getParam("roll_in_margin", ROLL_IN_MARGIN_));
-            ROS_ASSERT(private_nh.getParam("lane_change_speed_factor", LANE_CHANGE_SPEED_FACTOR_));
-            ROS_ASSERT(private_nh.getParam("horizon_distance", HORIZON_DISTANCE_));
-
-            ROS_ASSERT(private_nh.getParam("horizontal_safety_distance", HORIZONTAL_SAFETY_DISTANCE_));
-            ROS_ASSERT(private_nh.getParam("vertical_safety_distance", VERTICAL_SAFETY_DISTANCE_));
-            ROS_ASSERT(private_nh.getParam("max_steer_angle", MAX_STEER_ANGLE_));
-            ROS_ASSERT(private_nh.getParam("min_speed", MIN_SPEED_));
-            ROS_ASSERT(private_nh.getParam("lateral_skip_distance", LATERAL_SKIP_DISTANCE_));
-
-            ROS_ASSERT(private_nh.getParam("min_following_distance", MIN_FOLLOWING_DISTANCE_));
-            ROS_ASSERT(private_nh.getParam("max_following_distance", MAX_FOLLOWING_DISTANCE_));
-            ROS_ASSERT(private_nh.getParam("min_distance_to_avoid", MIN_DISTANCE_TO_AVOID));
-
-            ROS_ASSERT(private_nh.getParam("vehicle_width", VEHICLE_WIDTH_));
-            ROS_ASSERT(private_nh.getParam("vehicle_length", VEHICLE_LENGTH_));
-            ROS_ASSERT(private_nh.getParam("wheelbase_length", WHEELBASE_LENGTH_));
-            ROS_ASSERT(private_nh.getParam("turning_radius", TURNING_RADIUS_));
-            ROS_ASSERT(private_nh.getParam("safety_radius", SAFETY_RADIUS_));
-
-            // Smoothing weights
-            ROS_ASSERT(private_nh.getParam("smooth_data_weight", SMOOTH_DATA_WEIGHT_));
-            ROS_ASSERT(private_nh.getParam("smooth_weight", SMOOTH_WEIGHT_));
-            ROS_ASSERT(private_nh.getParam("smooth_tolerance", SMOOTH_TOLERANCE_));
-
-            ROS_ASSERT(private_nh.getParam("priority_weight", PRIORITY_WEIGHT_));
-            ROS_ASSERT(private_nh.getParam("transition_weight", TRANSITION_WEIGHT_));
-            ROS_ASSERT(private_nh.getParam("lat_weight", LAT_WEIGHT_));
-            ROS_ASSERT(private_nh.getParam("long_weight", LONG_WEIGHT_));
-            ROS_ASSERT(private_nh.getParam("collision_weight", COLLISION_WEIGHT_));
-            ROS_ASSERT(private_nh.getParam("curvature_weight", CURVATURE_WEIGHT_));
+            // create Node Handle with name of plugin (as used in move_base for loading)
+            ros::NodeHandle nh("~/" + name);
+            params_.loadRosParamFromNodeHandle(nh);
 
             // Subscribe & Advertise
-            odom_sub = nh.subscribe(odom_topic_, 1, &AdaptiveOpenLocalPlannerROS::odomCallback, this);
+            odom_sub = nh.subscribe(params_.odom_topic, 1, &AdaptiveOpenLocalPlannerROS::odomCallback, this);
 
-            extracted_path_rviz_pub = nh.advertise<nav_msgs::Path>(extracted_path_rviz_topic_, 1, true);
-            current_pose_rviz_pub = nh.advertise<geometry_msgs::PoseStamped>(current_pose_rviz_topic_, 1, true);
-            roll_outs_rviz_pub = nh.advertise<visualization_msgs::MarkerArray>(roll_outs_rviz_topic_, 1, true);
-            weighted_trajectories_rviz_pub = nh.advertise<visualization_msgs::MarkerArray>(weighted_trajectories_rviz_topic_, 1, true);
-            safety_box_rviz_pub = nh.advertise<visualization_msgs::Marker>(safety_box_rviz_topic_, 1, true);
-            car_footprint_rviz_pub = nh.advertise<visualization_msgs::Marker>(car_footprint_rviz_topic_, 1, true);
-            box_obstacle_rviz_pub = nh.advertise<visualization_msgs::Marker>(box_obstacle_rviz_topic_, 1, true);
+            extracted_path_rviz_pub = nh.advertise<nav_msgs::Path>(params_.extracted_path_rviz_topic, 1, true);
+            current_pose_rviz_pub = nh.advertise<geometry_msgs::PoseStamped>(params_.current_pose_rviz_topic, 1, true);
+            roll_outs_rviz_pub = nh.advertise<visualization_msgs::MarkerArray>(params_.roll_outs_rviz_topic, 1, true);
+            weighted_trajectories_rviz_pub = nh.advertise<visualization_msgs::MarkerArray>(params_.weighted_trajectories_rviz_topic, 1, true);
+            safety_box_rviz_pub = nh.advertise<visualization_msgs::Marker>(params_.safety_box_rviz_topic, 1, true);
+            car_footprint_rviz_pub = nh.advertise<visualization_msgs::Marker>(params_.car_footprint_rviz_topic, 1, true);
+            box_obstacle_rviz_pub = nh.advertise<visualization_msgs::Marker>(params_.box_obstacle_rviz_topic, 1, true);
 
             global_path_received = false;
             b_vehicle_state = false;
             b_obstacles = false;
             prev_closest_index = 0;
             prev_cost = 0;
-
-            // create Node Handle with name of plugin (as used in move_base for loading)
-            ros::NodeHandle nh("~/" + name);
 
             // reserve some memory for obstacles
             obstacles_.reserve(500);
@@ -239,7 +167,7 @@ namespace adaptive_open_local_planner
 
         current_state_in_map_frame_.speed = odom_msg->twist.twist.linear.x;
         if (fabs(odom_msg->twist.twist.linear.x) > 0.25)
-            current_state_in_map_frame_.steer = atan(WHEELBASE_LENGTH_ * odom_msg->twist.twist.angular.z / odom_msg->twist.twist.linear.x);
+            current_state_in_map_frame_.steer = atan(params_.wheelbase_length * odom_msg->twist.twist.angular.z / odom_msg->twist.twist.linear.x);
 
         geometry_msgs::TransformStamped transform_stamped;
         try
@@ -313,7 +241,7 @@ namespace adaptive_open_local_planner
             extracted_path.push_back(global_path[i]);
             if (i > 0)
                 d += hypot(global_path[i].x - global_path[i - 1].x, global_path[i].y - global_path[i - 1].y);
-            if (d > MAX_LOCAL_PLAN_DISTANCE_)
+            if (d > params_.max_local_plan_distance)
                 break;
         }
 
@@ -323,8 +251,8 @@ namespace adaptive_open_local_planner
             return;
         }
 
-        PlannerHelpers::fixPathDensity(extracted_path, PATH_DENSITY_);
-        PlannerHelpers::smoothPath(extracted_path, SMOOTH_TOLERANCE_, SMOOTH_DATA_WEIGHT_, SMOOTH_WEIGHT_);
+        PlannerHelpers::fixPathDensity(extracted_path, params_.path_density);
+        PlannerHelpers::smoothPath(extracted_path, params_.smooth_tolerance, params_.smooth_data_weight, params_.smooth_weight);
         PlannerHelpers::calculateAngleAndCost(extracted_path, prev_cost);
 
         nav_msgs::Path path;
@@ -337,11 +265,11 @@ namespace adaptive_open_local_planner
         // std::cout << "path size: " << path.size() << std::endl;
         if (path.size() == 0)
             return;
-        if (MAX_LOCAL_PLAN_DISTANCE_ <= 0)
+        if (params_.max_local_plan_distance <= 0)
             return;
         roll_outs.clear();
 
-        int i_limit_index = (SAMPLING_TIP_MARGIN_ / 0.3) / PATH_DENSITY_;
+        int i_limit_index = (params_.sampling_tip_margin / 0.3) / params_.path_density;
         if (i_limit_index >= path.size())
             i_limit_index = path.size() - 1;
         // std::cout << "i_limit_index: " << i_limit_index << std::endl;
@@ -373,7 +301,7 @@ namespace adaptive_open_local_planner
         // int far_index = closest_index;
 
         // calculate end index
-        double start_distance = ROLL_IN_SPEED_FACTOR_ * current_state_in_map_frame_.speed + ROLL_IN_MARGIN_;
+        double start_distance = params_.roll_in_speed_factor * current_state_in_map_frame_.speed + params_.roll_in_margin;
         if (start_distance > remaining_distance)
             start_distance = remaining_distance;
         // std::cout << "start_distance: " << start_distance << std::endl;
@@ -391,11 +319,11 @@ namespace adaptive_open_local_planner
         }
         // std::cout << "far_index: " << far_index << std::endl;
 
-        int central_trajectory_index = ROLL_OUTS_NUMBER_ / 2;
+        int central_trajectory_index = params_.roll_outs_number / 2;
         std::vector<double> end_laterals;
-        for (int i = 0; i < ROLL_OUTS_NUMBER_ + 1; i++)
+        for (int i = 0; i < params_.roll_outs_number + 1; i++)
         {
-            double end_roll_in_distance = ROLL_OUT_DENSITY_ * (i - central_trajectory_index);
+            double end_roll_in_distance = params_.roll_out_density * (i - central_trajectory_index);
             end_laterals.push_back(end_roll_in_distance);
             // std::cout << "roll out num: " << i << ", end_roll_in_distance: " << end_roll_in_distance << std::endl;
         }
@@ -409,7 +337,7 @@ namespace adaptive_open_local_planner
         {
             if (i > 0)
                 d_limit += distance2points(path[i], path[i - 1]);
-            if (d_limit > SAMPLING_TIP_MARGIN_)
+            if (d_limit > params_.sampling_tip_margin)
                 break;
 
             smoothing_start_index++;
@@ -420,7 +348,7 @@ namespace adaptive_open_local_planner
         {
             if (i > 0)
                 d_limit += distance2points(path[i], path[i - 1]);
-            if (d_limit > SAMPLING_TIP_MARGIN_)
+            if (d_limit > params_.sampling_tip_margin)
                 break;
 
             smoothing_end_index++;
@@ -433,7 +361,7 @@ namespace adaptive_open_local_planner
 
         std::vector<double> inc_list;
         std::vector<double> inc_list_inc;
-        for (int i = 0; i < ROLL_OUTS_NUMBER_ + 1; i++)
+        for (int i = 0; i < params_.roll_outs_number + 1; i++)
         {
             double diff = end_laterals[i] - initial_roll_in_distance;
             // std::cout << "diff: " << diff << std::endl;
@@ -443,7 +371,7 @@ namespace adaptive_open_local_planner
         }
 
         std::vector<std::vector<Waypoint>> excluded_from_smoothing;
-        for (int i = 0; i < ROLL_OUTS_NUMBER_ + 1; i++)
+        for (int i = 0; i < params_.roll_outs_number + 1; i++)
             excluded_from_smoothing.push_back(std::vector<Waypoint>());
 
         Waypoint wp;
@@ -452,12 +380,12 @@ namespace adaptive_open_local_planner
         {
             wp = path[j];
             double original_speed = wp.speed;
-            for (int i = 0; i < ROLL_OUTS_NUMBER_ + 1; i++)
+            for (int i = 0; i < params_.roll_outs_number + 1; i++)
             {
                 wp.x = path[j].x - initial_roll_in_distance * cos(wp.heading + M_PI_2);
                 wp.y = path[j].y - initial_roll_in_distance * sin(wp.heading + M_PI_2);
                 if (i != central_trajectory_index)
-                    wp.speed = original_speed * LANE_CHANGE_SPEED_FACTOR_;
+                    wp.speed = original_speed * params_.lane_change_speed_factor;
                 else
                     wp.speed = original_speed;
 
@@ -472,7 +400,7 @@ namespace adaptive_open_local_planner
         {
             wp = path[j];
             double original_speed = wp.speed;
-            for (int i = 0; i < ROLL_OUTS_NUMBER_ + 1; i++)
+            for (int i = 0; i < params_.roll_outs_number + 1; i++)
             {
                 inc_list_inc[i] += inc_list[i];
                 double d = inc_list_inc[i];
@@ -480,7 +408,7 @@ namespace adaptive_open_local_planner
                 wp.y = path[j].y - initial_roll_in_distance * sin(wp.heading + M_PI_2) - d * sin(wp.heading + M_PI_2);
 
                 if (i != central_trajectory_index)
-                    wp.speed = original_speed * LANE_CHANGE_SPEED_FACTOR_;
+                    wp.speed = original_speed * params_.lane_change_speed_factor;
                 else
                     wp.speed = original_speed;
 
@@ -493,20 +421,20 @@ namespace adaptive_open_local_planner
         {
             wp = path[j];
             double original_speed = wp.speed;
-            for (int i = 0; i < ROLL_OUTS_NUMBER_ + 1; i++)
+            for (int i = 0; i < params_.roll_outs_number + 1; i++)
             {
                 double d = end_laterals[i];
                 wp.x = path[j].x - d * cos(wp.heading + M_PI_2);
                 wp.y = path[j].y - d * sin(wp.heading + M_PI_2);
                 if (i != central_trajectory_index)
-                    wp.speed = original_speed * LANE_CHANGE_SPEED_FACTOR_;
+                    wp.speed = original_speed * params_.lane_change_speed_factor;
                 else
                     wp.speed = original_speed;
                 roll_outs[i].push_back(wp);
             }
         }
 
-        for (int i = 0; i < ROLL_OUTS_NUMBER_ + 1; i++)
+        for (int i = 0; i < params_.roll_outs_number + 1; i++)
             roll_outs[i].insert(roll_outs[i].begin(), excluded_from_smoothing[i].begin(), excluded_from_smoothing[i].end());
 
         d_limit = 0;
@@ -515,7 +443,7 @@ namespace adaptive_open_local_planner
             if (j > 0)
                 d_limit += distance2points(path[j], path[j - 1]);
 
-            if (d_limit > MAX_LOCAL_PLAN_DISTANCE_) // max_roll_distance)
+            if (d_limit > params_.max_local_plan_distance) // max_roll_distance)
                 break;
 
             wp = path[j];
@@ -527,7 +455,7 @@ namespace adaptive_open_local_planner
                 wp.y = path[j].y - d * sin(wp.heading + M_PI_2);
 
                 if (i != central_trajectory_index)
-                    wp.speed = original_speed * LANE_CHANGE_SPEED_FACTOR_;
+                    wp.speed = original_speed * params_.lane_change_speed_factor;
                 else
                     wp.speed = original_speed;
 
@@ -535,9 +463,9 @@ namespace adaptive_open_local_planner
             }
         }
 
-        for (int i = 0; i < ROLL_OUTS_NUMBER_ + 1; i++)
+        for (int i = 0; i < params_.roll_outs_number + 1; i++)
         {
-            PlannerHelpers::smoothPath(roll_outs[i], SMOOTH_TOLERANCE_, SMOOTH_DATA_WEIGHT_, SMOOTH_WEIGHT_);
+            PlannerHelpers::smoothPath(roll_outs[i], params_.smooth_tolerance, params_.smooth_data_weight, params_.smooth_weight);
             PlannerHelpers::calculateAngleAndCost(roll_outs[i], prev_cost);
             PlannerHelpers::predictConstantTimeCostForTrajectory(roll_outs[i], current_state_in_map_frame_);
         }
@@ -557,26 +485,26 @@ namespace adaptive_open_local_planner
         car_pos.y = current_state_in_map_frame_.y;
         car_pos.heading = current_state_in_map_frame_.yaw;
         PlannerHelpers::getRelativeInfo(extracted_path, car_pos, car_info);
-        int curr_index = ROLL_OUTS_NUMBER_ / 2 + floor(car_info.perp_distance / ROLL_OUT_DENSITY_);
+        int curr_index = params_.roll_outs_number / 2 + floor(car_info.perp_distance / params_.roll_out_density);
         // std::cout <<  "Current Index: " << curr_index << std::endl;
         if (curr_index < 0)
             curr_index = 0;
-        else if (curr_index > ROLL_OUTS_NUMBER_)
-            curr_index = ROLL_OUTS_NUMBER_;
+        else if (curr_index > params_.roll_outs_number)
+            curr_index = params_.roll_outs_number;
 
         trajectory_costs.clear();
         if (roll_outs.size() > 0)
         {
             PathCost tc;
-            int central_index = ROLL_OUTS_NUMBER_ / 2;
+            int central_index = params_.roll_outs_number / 2;
             tc.lane_index = 0;
             for (int it = 0; it < roll_outs.size(); it++)
             {
                 tc.index = it;
                 tc.relative_index = it - central_index;
-                tc.distance_from_center = ROLL_OUT_DENSITY_ * tc.relative_index;
+                tc.distance_from_center = params_.roll_out_density * tc.relative_index;
                 tc.priority_cost = fabs(tc.distance_from_center);
-                tc.closest_obj_distance = HORIZON_DISTANCE_;
+                tc.closest_obj_distance = params_.horizon_distance;
                 // if(roll_outs[it].size() > 0)
                 //     tc.lane_change_cost = roll_outs[it][0].lane_change_cost;
                 tc.bBlocked = false;
@@ -584,7 +512,7 @@ namespace adaptive_open_local_planner
             }
         }
 
-        PlannerHelpers::calculateTransitionCosts(trajectory_costs, curr_index, ROLL_OUT_DENSITY_);
+        PlannerHelpers::calculateTransitionCosts(trajectory_costs, curr_index, params_.roll_out_density);
 
         std::vector<Waypoint> contour_points;
         for (int io = 0; io < box_obstacles.size(); io++)
@@ -629,17 +557,17 @@ namespace adaptive_open_local_planner
         visualization_msgs::Marker car_footprint_marker, safety_box_marker;
         PlannerHelpers::calculateLateralAndLongitudinalCostsStatic(trajectory_costs, roll_outs, extracted_path, contour_points,
                                                                    current_state_in_map_frame_, car_footprint_marker, safety_box_marker,
-                                                                   VEHICLE_LENGTH_, VEHICLE_WIDTH_,
-                                                                   WHEELBASE_LENGTH_, HORIZONTAL_SAFETY_DISTANCE_,
-                                                                   VERTICAL_SAFETY_DISTANCE_, MAX_STEER_ANGLE_,
-                                                                   MIN_FOLLOWING_DISTANCE_, LATERAL_SKIP_DISTANCE_);
+                                                                   params_.vehicle_length, params_.vehicle_width,
+                                                                   params_.wheelbase_length, params_.horizontal_safety_distance,
+                                                                   params_.vertical_safety_distance, params_.max_steer_angle,
+                                                                   params_.min_following_distance, params_.lateral_skip_distance);
 
         car_footprint_rviz_pub.publish(car_footprint_marker);
         safety_box_rviz_pub.publish(safety_box_marker);
 
         PlannerHelpers::calculateCurvatureCosts(trajectory_costs, roll_outs);
 
-        PlannerHelpers::normalizeCosts(trajectory_costs, PRIORITY_WEIGHT_, TRANSITION_WEIGHT_, LAT_WEIGHT_, LONG_WEIGHT_, CURVATURE_WEIGHT_);
+        PlannerHelpers::normalizeCosts(trajectory_costs, params_.priority_weight, params_.transition_weight, params_.lat_weight, params_.long_weight, params_.curvature_weight);
 
         int smallestIndex = -1;
         double smallestCost = DBL_MAX;

@@ -1,0 +1,149 @@
+HybridAStar:
+  # **********************Algorithm parameters*****************
+
+  #  A flag for the visualization of 3D nodes (true = on; false = off)
+  visualization : false
+
+  # whether to use fixed start and goal
+  fix_start_goal: true
+
+  #  A flag to toggle reversing (true = on; false = off)
+  reverse : false
+  # number of direction to create successor for A-star algorithm
+  possible_direction : 8
+  # parameter to control whether to postprocessing path: short cut
+  short_cut: true
+
+  piecewise_cubic_bezier_interpolation: true
+  # evaluate path using curvature, smoothness, distance to obstacle and steering angle
+  evaluate_path: true
+  # number of successors for hybrid a star
+  number_of_successors: 5
+  # for heuristic in hybrid a, use dubins or reedshepp or cubic bezier in analytical expansion
+  # 0: dubins curve, 1: reedsshepp curve 2: cubic bezier
+  curve_type : 2
+
+  adaptive_steering_angle_and_step_size: true
+
+  adaptive_step_size: false
+  # parameter to control whether to use fix or adaptive step size
+  constant_density: 0.6
+
+  obstacle_detection_range: 1
+
+  add_one_more_successor : false
+
+  add_one_more_successor_only_in_free_angle_range: true
+
+  # while this parameter is true, it will add four boundary obstacle to obstacle list
+  map_boundary_obstacle: false
+  # this parameter control how to generate steering angle in obstacle angle range
+  steering_angle_towards_free_angle_range_for_obstacle_angle_range: true
+  # if this is true, 
+  #   then use number of successors to select steering angle in free angle angle:
+  # else:
+  #   use a fixed step size, so steering angle should be: free angle start, free angle start+ n*step_size(step size should be 5 deg).
+  fixed_number_of_steering_angle_in_free_angle_range: true
+
+  analytical_expansion: true
+  # this parameter determine the frequency of analytical expansion, false means the way in the original paper
+  analytical_expansion_every_point : false
+
+ 
+
+  consider_steering_angle_range_for_obstacle_density: false
+
+  #  COLLISION LOOKUP SPECIFIC
+  # [#] --- The sqrt of the number of discrete positions per cell
+  position_resolution : 1
+  # **********************vehicle parameters*****************
+  # [m] --- Uniformly adds a padding around the vehicle
+  bloating : 0
+  # [m] --- The width of the vehicle
+  vehicle_width : 0.25
+  # [m] --- The length of the vehicle
+  vehicle_length : 0.5
+  # smooth the path or not
+  smooth : false 
+  # [degree] --- max steering angle in degree
+  max_steering_angle: 30
+  # **********************Search parameters*****************
+  #   \brief [m] --- The tie breaker breaks ties between nodes expanded in the same cell
+
+  #   As the cost-so-far are bigger than the cost-to-come it is reasonable to believe that the algorithm would prefer the predecessor rather than the successor.
+  #   This would lead to the fact that the successor would never be placed and the the one cell could only expand one node. The tieBreaker artificially increases the cost of the predecessor to allow the successor being placed in the same cell.
+  # */
+  tie_breaker : 0.01
+  # range for goal test
+  goal_range: 1
+  # [#] --- A movement cost penalty for turning (choosing non straight motion primitives)
+  penalty_turning : 1.5
+  # [#] --- A movement cost penalty for reversing (choosing motion primitives > 2)
+  penalty_reverse : 1.2
+  # [#] --- A movement cost penalty for change of direction (changing from primitives < 3 to primitives > 2)
+  penalty_change_of_direction : 1.0
+  # steering angle, unit is deg
+  steering_angle: 3
+
+  # [m] --- The step size for the analytical solution (Dubin's shot) primarily relevant for collision checking
+  curve_step_size : 0.3
+
+  #  [m] --- The number of discretizations in heading
+  headings : 72
+
+
+  # **********************Smoother parameters*****************
+  max_iterations : 100000
+  #  the small number which will terminate loop if path difference smaller than this number.
+  epsilon : 1.0e-2
+  #maximum possible curvature of the non-holonomic vehicle
+  min_turning_radius :  0.35
+  #maximum distance to obstacles that is penalized
+  obsd_max : 2
+  # maximum distance for obstacles to influence the voronoi field
+  vor_obs_dmax : 2
+  #falloff rate for the voronoi field
+  alpha: 0.1
+  # weight for the obstacle term
+  weight_obstacle : 0
+  # weight for the voronoi term
+  weight_voronoi : 0
+  # weight for the curvature term
+  weight_curvature : 0
+  # weight for the smoothness term
+  weight_smoothness : 1
+  #weight for path length
+  weight_length : 0
+
+  # **********************rrt parameters*****************
+  use_rrt: false
+  # do not consider orientation
+  twoD_rrt: true
+  possibility_to_goal: 0.5
+  #  ref: Wang, Xuewu & Wei, Jianbin & Zhou, Xin & Xia, Zelong & Gu, Xingsheng. (2022). AEB-RRT*: an adaptive extension bidirectional RRT* algorithm. Autonomous Robots. 46. 1-20. 10.1007/s10514-022-10044-x. 
+  use_AEB_rrt: false
+
+  # for goal check
+  consider_orientation: false
+  # consider steering angle range, if not, just random steering
+  consider_steering_angle_range: false
+
+  adaptive_possibility_to_goal: false
+  # number of step size used to extend tree, if this is zero, then use continuos step size, for different obstacle density, use different step size
+  number_of_step_size: 1
+
+  # rewire like rrt*
+  rewire: false
+  # radius to find near neighbors on rrt
+  neighbor_detection_radius : 10
+
+  use_rrt_connect : false
+
+  steering_angle_resolution: 0.1
+
+  # **********************A star parameters*****************
+  # whether to use A-star algorithm to find path??
+  use_a_star: false
+
+  use_adaptive_step_size_in_a_star: false
+
