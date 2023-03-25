@@ -174,13 +174,11 @@ namespace adaptive_open_local_planner
         // Global Variables
         bool global_path_received;
         bool b_vehicle_state;
-        bool b_obstacles;
 
         VehicleState current_state_in_map_frame_;
         VehicleState current_state_in_global_frame_;
         std::vector<Waypoint> global_path;
 
-        int prev_closest_index;
         double prev_cost;
 
         ParameterManager params_;

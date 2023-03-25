@@ -81,6 +81,7 @@ add_library(adaptive_open_local_planner
    src/obstacles.cpp
    src/planner_helpers.cpp
    src/visualization_helpers.cpp
+   src/parameter_manager.cpp
 )
 
 
@@ -90,13 +91,4 @@ target_link_libraries(adaptive_open_local_planner
        glog::glog 
 )
 
-## Build additional executables
-
-# add_executable(test_optim_node src/test_optim_node.cpp)
-
-# target_link_libraries(test_optim_node
-# adaptive_open_local_planner
-#    ${EXTERNAL_LIBS}
-#    ${catkin_LIBRARIES}
-# )
 

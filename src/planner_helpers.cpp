@@ -589,22 +589,6 @@ namespace adaptive_open_local_planner
                 }
             }
         }
-
-        // // Method 2 for collision-checking
-        // for(int i = 0; i < roll_outs.size(); i++)
-        // {
-        //     double closest_obs_distance = PlannerHelpers::checkTrajectoryForCollision(roll_outs[i], circle_obstacles, box_obstacles,
-        //                                                                                     SAFETY_RADIUS_, VEHICLE_WIDTH_, VEHICLE_LENGTH_,
-        //                                                                                     WHEELBASE_LENGTH_, HORIZONTAL_SAFETY_DISTANCE_, VERTICAL_SAFETY_DISTANCE_);
-        //     std::cout << "Closest obstacle distance: " << closest_obs_distance << std::endl;
-        //     if(closest_obs_distance == -1) // collision
-        //     {
-        //         trajectory_costs[i].bBlocked = true;
-        //         trajectory_costs[i].closest_obj_cost = 1.0/0.001;
-        //         continue;
-        //     }
-        //     trajectory_costs[i].closest_obj_cost = 1.0/closest_obs_distance;
-        // }
     }
 
     void PlannerHelpers::calculateCurvatureCosts(std::vector<PathCost> &trajectory_costs, const std::vector<std::vector<Waypoint>> &roll_outs)
@@ -687,7 +671,7 @@ namespace adaptive_open_local_planner
 
             trajectory_costs[ic].cost = (priority_weight * trajectory_costs[ic].priority_cost + transition_weight * trajectory_costs[ic].transition_cost + lat_weight * trajectory_costs[ic].lateral_cost + long_weight * trajectory_costs[ic].longitudinal_cost + curvature_weight * trajectory_costs[ic].curvature_cost) /
                                         (priority_weight + transition_weight + lat_weight + long_weight + curvature_weight);
-            // trajectory_costs[ic].cost = (PRIORITY_WEIGHT_*trajectory_costs[ic].priority_cost + TRANSITION_WEIGHT_*trajectory_costs[ic].transition_cost + COLLISION_WEIGHT_*trajectory_costs[ic].closest_obj_cost)/3.0;
+            // trajectory_costs[ic].cost = (priority_weight*trajectory_costs[ic].priority_cost + transition_weight*trajectory_costs[ic].transition_cost + collision_weight*trajectory_costs[ic].closest_obj_cost)/3.0;
 
             std::cout << "Index: " << ic
                       << ", Priority: " << trajectory_costs[ic].priority_cost

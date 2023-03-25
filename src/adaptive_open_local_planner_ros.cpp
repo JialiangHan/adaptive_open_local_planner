@@ -23,7 +23,7 @@ namespace adaptive_open_local_planner
 
         google::EnableLogCleaner(5);
         FLAGS_alsologtostderr = 1;
-        LOG(INFO) << "creating adaptive_open_local_planner planner";
+        DLOG(INFO) << "creating adaptive_open_local_planner planner";
         initialize(name, tf, costmap_ros);
     }
     void AdaptiveOpenLocalPlannerROS::initialize(std::string name, tf2_ros::Buffer *tf, costmap_2d::Costmap2DROS *costmap_ros)
@@ -31,7 +31,8 @@ namespace adaptive_open_local_planner
         if (!initialized_)
         {
             // create Node Handle with name of plugin (as used in move_base for loading)
-            ros::NodeHandle nh("~/" + name);
+            // ros::NodeHandle nh("~/" + name);
+            ros::NodeHandle nh;
             params_.loadRosParamFromNodeHandle(nh);
 
             // Subscribe & Advertise
@@ -47,8 +48,7 @@ namespace adaptive_open_local_planner
 
             global_path_received = false;
             b_vehicle_state = false;
-            b_obstacles = false;
-            prev_closest_index = 0;
+
             prev_cost = 0;
 
             // reserve some memory for obstacles
@@ -66,7 +66,7 @@ namespace adaptive_open_local_planner
             // set initialized flag
             initialized_ = true;
 
-            ROS_DEBUG("teb_local_planner plugin initialized.");
+            DLOG(INFO) << "adaptive_open_local_planner plugin initialized.";
         }
     }
 
@@ -75,7 +75,7 @@ namespace adaptive_open_local_planner
         // check if plugin is initialized
         if (!initialized_)
         {
-            ROS_ERROR("teb_local_planner has not been initialized, please call initialize() before using this planner");
+            ROS_ERROR("adaptive_open_local_planner has not been initialized, please call initialize() before using this planner");
             return false;
         }
         // store the global plan
@@ -128,12 +128,6 @@ namespace adaptive_open_local_planner
             return false;
         }
 
-        if (!b_obstacles)
-        {
-            ROS_WARN("Obstacles data not received!");
-            return false;
-        }
-
         std::vector<Waypoint> extracted_path, best_path;
         extractGlobalPathSection(extracted_path);
 
@@ -164,7 +158,7 @@ namespace adaptive_open_local_planner
     void AdaptiveOpenLocalPlannerROS::odomCallback(const nav_msgs::Odometry::ConstPtr &odom_msg)
     {
         b_vehicle_state = true;
-
+        // DLOG(INFO) << "odom received.";
         current_state_in_map_frame_.speed = odom_msg->twist.twist.linear.x;
         if (fabs(odom_msg->twist.twist.linear.x) > 0.25)
             current_state_in_map_frame_.steer = atan(params_.wheelbase_length * odom_msg->twist.twist.angular.z / odom_msg->twist.twist.linear.x);
@@ -176,6 +170,7 @@ namespace adaptive_open_local_planner
         }
         catch (tf2::TransformException &ex)
         {
+            DLOG(WARNING) << "lookupTransform issue.";
             ROS_WARN("%s", ex.what());
             return;
         }
@@ -219,23 +214,8 @@ namespace adaptive_open_local_planner
         if (closest_index + 1 >= global_path.size())
             closest_index = global_path.size() - 2;
 
-        // prev_closest_index = closest_index;
-        // prev_cost = global_path[prev_closest_index].cost;
-
         double d = 0;
 
-        // include points before the closest next point
-        // for(int i = closest_index; i >= 0; i--)
-        // {
-        //     extracted_path.insert(extracted_path.begin(), global_path[i]);
-
-        //     if(i < global_path.size())
-        //         d += hypot(global_path[i].x - global_path[i+1].x, global_path[i].y - global_path[i+1].y);
-        //     if(d > 10)
-        //         break;
-        // }
-
-        // d = 0;
         for (int i = closest_index; i < (int)global_path.size(); i++)
         {
             extracted_path.push_back(global_path[i]);
@@ -471,7 +451,6 @@ namespace adaptive_open_local_planner
         }
 
         visualization_msgs::MarkerArray roll_out_marker_array;
-        // viz_helper.createRollOutsMarker(roll_outs, roll_out_marker_array);
         VisualizationHelpers::createRollOutsMarker(roll_outs, roll_out_marker_array);
         roll_outs_rviz_pub.publish(roll_out_marker_array);
     }
