@@ -176,7 +176,6 @@ namespace adaptive_open_local_planner
         bool b_vehicle_state;
 
         VehicleState current_state_in_map_frame_;
-        VehicleState current_state_in_global_frame_;
         std::vector<Waypoint> global_path;
 
         double prev_cost;

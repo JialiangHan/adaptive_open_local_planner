@@ -116,6 +116,7 @@ namespace adaptive_open_local_planner
         cmd_vel.header.frame_id = robot_base_frame_;
         cmd_vel.twist.linear.x = cmd_vel.twist.linear.y = cmd_vel.twist.angular.z = 0;
         goal_reached_ = false;
+
         convertObstacle();
         if (!global_path_received)
         {
@@ -163,39 +164,20 @@ namespace adaptive_open_local_planner
         if (fabs(odom_msg->twist.twist.linear.x) > 0.25)
             current_state_in_map_frame_.steer = atan(params_.wheelbase_length * odom_msg->twist.twist.angular.z / odom_msg->twist.twist.linear.x);
 
-        geometry_msgs::TransformStamped transform_stamped;
-        try
+        if (initialized_)
         {
-            transform_stamped = tf_buffer.lookupTransform("map", "odom", ros::Time(0));
+            // Get robot pose
+            geometry_msgs::PoseStamped robot_pose;
+            costmap_ros_->getRobotPose(robot_pose);
+
+            current_state_in_map_frame_.yaw = tf::getYaw(robot_pose.pose.orientation);
+
+            current_state_in_map_frame_.x = robot_pose.pose.position.x;
+            current_state_in_map_frame_.y = robot_pose.pose.position.y;
+
+            VisualizationHelpers::createCurrentPoseMarker(current_state_in_map_frame_, robot_pose);
+            current_pose_rviz_pub.publish(robot_pose);
         }
-        catch (tf2::TransformException &ex)
-        {
-            DLOG(WARNING) << "lookupTransform issue.";
-            ROS_WARN("%s", ex.what());
-            return;
-        }
-
-        geometry_msgs::PoseStamped pose_before_transform, pose_after_transform;
-        pose_before_transform.header.frame_id = odom_msg->header.frame_id;
-        pose_before_transform.header.stamp = odom_msg->header.stamp;
-        pose_before_transform.pose = odom_msg->pose.pose;
-        tf2::doTransform(pose_before_transform, pose_after_transform, transform_stamped);
-
-        tf::Quaternion q(pose_after_transform.pose.orientation.x, pose_after_transform.pose.orientation.y,
-                         pose_after_transform.pose.orientation.z, pose_after_transform.pose.orientation.w);
-        tf::Matrix3x3 m(q);
-        double roll, pitch;
-        m.getRPY(roll, pitch, current_state_in_map_frame_.yaw);
-        current_state_in_global_frame_.x = pose_before_transform.pose.position.x;
-        current_state_in_global_frame_.y = pose_before_transform.pose.position.y;
-        current_state_in_global_frame_.yaw = tf::getYaw(pose_before_transform.pose.orientation);
-        // Current XY of robot (map frame)
-        current_state_in_map_frame_.x = pose_after_transform.pose.position.x;
-        current_state_in_map_frame_.y = pose_after_transform.pose.position.y;
-
-        geometry_msgs::PoseStamped pose;
-        VisualizationHelpers::createCurrentPoseMarker(current_state_in_map_frame_, pose);
-        current_pose_rviz_pub.publish(pose);
     }
 
     void AdaptiveOpenLocalPlannerROS::extractGlobalPathSection(std::vector<Waypoint> &extracted_path)
@@ -587,9 +569,8 @@ namespace adaptive_open_local_planner
     void AdaptiveOpenLocalPlannerROS::updateObstacleContainerWithCostmap()
     {
         // Add costmap obstacles if desired
-        // TODO convert this robot_pose to open planner robot pose
-        Eigen::Vector2d robot_orient(std::cos(current_state_in_global_frame_.yaw), std::sin(current_state_in_global_frame_.yaw));
-        Eigen::Vector2d robot_pose(current_state_in_global_frame_.x, current_state_in_global_frame_.y);
+        Eigen::Vector2d robot_orient(std::cos(current_state_in_map_frame_.yaw), std::sin(current_state_in_map_frame_.yaw));
+        Eigen::Vector2d robot_pose(current_state_in_map_frame_.x, current_state_in_map_frame_.y);
         for (unsigned int i = 0; i < costmap_->getSizeInCellsX() - 1; ++i)
         {
             for (unsigned int j = 0; j < costmap_->getSizeInCellsY() - 1; ++j)
