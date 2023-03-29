@@ -7,6 +7,10 @@
 #include "matrix.h"
 #include "polygon.h"
 #include "visualization_helpers.h"
+#include "glog/logging.h"
+#include "gflags/gflags.h"
+#include <nav_msgs/Path.h>
+#include <geometry_msgs/PoseStamped.h>
 
 #define _USE_MATH_DEFINES
 #define RAD2DEG 180.0 / M_PI
@@ -26,7 +30,7 @@ namespace adaptive_open_local_planner
         static double fixNegativeAngle(const double &a);
         static void fixPathDensity(std::vector<Waypoint> &path, const double &path_density);
         static void smoothPath(std::vector<Waypoint> &path, const double &smooth_tolerance, const double &smooth_data_weight, const double &smooth_weight);
-        static double calculateAngleAndCost(std::vector<Waypoint> &path, const double &prev_cost);
+        static double calculateAngleAndCost(std::vector<Waypoint> &path, const double &prev_cost_);
         static bool getRelativeInfo(const std::vector<Waypoint> &path, const Waypoint &current_pos, RelativeInfo &info);
         static void predictConstantTimeCostForTrajectory(std::vector<Waypoint> &path, const VehicleState &current_state_in_map_frame);
         static double getExactDistanceOnTrajectory(const std::vector<Waypoint> &trajectory, const RelativeInfo &p1, const RelativeInfo &p2);
@@ -47,5 +51,7 @@ namespace adaptive_open_local_planner
                                    const double &transition_weight, const double &lat_weight, const double &long_weight, const double &curvature_weight);
 
         static void convert(const std::vector<geometry_msgs::PoseStamped> &orig_global_plan, std::vector<Waypoint> &path);
+
+        static void convert(const std::vector<geometry_msgs::PoseStamped> &orig_global_plan, nav_msgs::Path &path);
     };
 };

@@ -71,6 +71,12 @@ namespace adaptive_open_local_planner
     double long_weight;
     double collision_weight;
     double curvature_weight;
+    double max_global_plan_lookahead_dist;
+    double global_plan_prune_distance;
+
+    double xy_goal_tolerance;
+    double yaw_goal_tolerance;
+    double transform_tolerance;
 
     ParameterManager()
     {
@@ -130,6 +136,13 @@ namespace adaptive_open_local_planner
       long_weight = 1;
       collision_weight = 2;
       curvature_weight = 1.2;
+
+      max_global_plan_lookahead_dist = 3.0;
+      global_plan_prune_distance = 1;
+
+      xy_goal_tolerance = 0.2;
+      yaw_goal_tolerance = 0.1;
+      transform_tolerance = 0.6;
     }
 
     /**

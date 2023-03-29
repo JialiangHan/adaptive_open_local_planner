@@ -1,0 +1,36 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="world_name" default="parking_lot_8_5_36" />
+  <arg name="gui" default="true" />
+  <arg name="run_camera" default="false"/>
+  <arg name="use_sim_time" default="true"/>
+  <include file="$(find gazebo_ros)/launch/empty_world.launch">
+      <arg name="world_name" value="$(find adaptive_open_local_planner)/worlds/$(arg world_name).sdf"/>
+    <arg name="gui" value="$(arg gui)"/>
+  </include>
+
+  <arg name="x" default="2"/>
+  <arg name="y" default="3.5"/>
+  <arg name="z" default="0.05"/>
+  <arg name="roll" default="90"/>
+  <arg name="pitch" default="0"/>
+  <arg name="yaw" default="0"/>
+
+  <node pkg="racecar_control" type="nav_sim.py" name="nav_sim_contral" />
+
+  <param name="robot_description" command="$(find xacro)/xacro '$(find racecar_description)/urdf/racecar.xacro'" />
+
+  <node name="racecar_spawn" pkg="gazebo_ros" type="spawn_model" output="screen" args="-urdf -param robot_description -model racecar -x $(arg x) -y $(arg y) -z $(arg z) -R $(arg roll) -P $(arg pitch) -Y $(arg yaw)" />
+  <include file="$(find racecar_control)/launch/racecar_control.launch" ns="/"/>
+	
+  <node name="map_server" pkg="map_server" type="map_server" args="$(find adaptive_open_local_planner)/maps/parking_lot_8_5_36.yaml" output="screen">
+    <!-- <param name="frame_id" value="map"/> -->
+  </node>
+
+  <!-- 运行move_base节点 -->
+  <include file="$(find adaptive_open_local_planner)/launch/move_base.launch" />
+    
+  <!-- <node pkg="tf" type="static_transform_publisher" name="odom_to_map" args="0 0 0 0 0 0  /odom /map 100" /> -->
+
+   <node pkg="rviz" type="rviz" name="rviz" args="-d $(find adaptive_open_local_planner)/rviz/movebase.rviz"/>
+</launch>

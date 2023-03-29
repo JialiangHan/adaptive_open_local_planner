@@ -63,3 +63,5 @@ AdaptiveOpenLocalPlannerROS:
   long_weight : 1
   collision_weight : 2
   curvature_weight : 1.2
+  max_global_plan_lookahead_dist : 3.0
+  global_plan_prune_distance : 1

@@ -32,13 +32,16 @@ namespace adaptive_open_local_planner
         {
             // create Node Handle with name of plugin (as used in move_base for loading)
             // ros::NodeHandle nh("~/" + name);
-            ros::NodeHandle nh;
+
             params_.loadRosParamFromNodeHandle(nh);
 
             // Subscribe & Advertise
             odom_sub = nh.subscribe(params_.odom_topic, 1, &AdaptiveOpenLocalPlannerROS::odomCallback, this);
 
             extracted_path_rviz_pub = nh.advertise<nav_msgs::Path>(params_.extracted_path_rviz_topic, 1, true);
+
+            global_path_rviz_pub = nh.advertise<nav_msgs::Path>("global_plan", 1, true);
+
             current_pose_rviz_pub = nh.advertise<geometry_msgs::PoseStamped>(params_.current_pose_rviz_topic, 1, true);
             roll_outs_rviz_pub = nh.advertise<visualization_msgs::MarkerArray>(params_.roll_outs_rviz_topic, 1, true);
             weighted_trajectories_rviz_pub = nh.advertise<visualization_msgs::MarkerArray>(params_.weighted_trajectories_rviz_topic, 1, true);
@@ -49,7 +52,7 @@ namespace adaptive_open_local_planner
             global_path_received = false;
             b_vehicle_state = false;
 
-            prev_cost = 0;
+            prev_cost_ = 0;
 
             // reserve some memory for obstacles
             obstacles_.reserve(500);
@@ -82,12 +85,15 @@ namespace adaptive_open_local_planner
         global_plan_.clear();
         global_plan_ = orig_global_plan;
         global_path_received = true;
-        PlannerHelpers::convert(global_plan_, global_path);
+        PlannerHelpers::convert(global_plan_, global_path_);
         // we do not clear the local planner here, since setPlan is called frequently whenever the global planner updates the plan.
         // the local planner checks whether it is required to reinitialize the trajectory or not within each velocity computation step.
 
         // reset goal_reached_ flag
         goal_reached_ = false;
+        nav_msgs::Path global_path;
+        PlannerHelpers::convert(orig_global_plan, global_path);
+        global_path_rviz_pub.publish(global_path);
 
         return true;
     }
@@ -117,6 +123,10 @@ namespace adaptive_open_local_planner
         cmd_vel.twist.linear.x = cmd_vel.twist.linear.y = cmd_vel.twist.angular.z = 0;
         goal_reached_ = false;
 
+        // Get robot pose
+        geometry_msgs::PoseStamped robot_pose;
+        costmap_ros_->getRobotPose(robot_pose);
+
         convertObstacle();
         if (!global_path_received)
         {
@@ -128,6 +138,8 @@ namespace adaptive_open_local_planner
             ROS_WARN("Odom data not received!");
             return false;
         }
+        // prune global plan to cut off parts of the past (spatially before the robot)
+        pruneGlobalPlan(*tf_, robot_pose, global_plan_, params_.global_plan_prune_distance);
 
         std::vector<Waypoint> extracted_path, best_path;
         extractGlobalPathSection(extracted_path);
@@ -139,6 +151,8 @@ namespace adaptive_open_local_planner
         doOneStepStatic(roll_outs, extracted_path, trajectory_costs, best_path);
         float velocity, steering_angle_rate;
         calculateVelocity(best_path, velocity, steering_angle_rate);
+
+        goalCheck();
         cmd_vel.twist.linear.x = velocity;
         cmd_vel.twist.linear.y = 0;
         cmd_vel.twist.angular.z = steering_angle_rate;
@@ -169,6 +183,7 @@ namespace adaptive_open_local_planner
             // Get robot pose
             geometry_msgs::PoseStamped robot_pose;
             costmap_ros_->getRobotPose(robot_pose);
+            robot_pose_ = PoseSE2(robot_pose.pose);
 
             current_state_in_map_frame_.yaw = tf::getYaw(robot_pose.pose.orientation);
 
@@ -182,7 +197,7 @@ namespace adaptive_open_local_planner
 
     void AdaptiveOpenLocalPlannerROS::extractGlobalPathSection(std::vector<Waypoint> &extracted_path)
     {
-        if (global_path.size() < 2)
+        if (global_path_.size() < 2)
             return;
 
         extracted_path.clear();
@@ -191,31 +206,31 @@ namespace adaptive_open_local_planner
         car_pos.x = current_state_in_map_frame_.x;
         car_pos.y = current_state_in_map_frame_.y;
         car_pos.heading = current_state_in_map_frame_.yaw;
-        int closest_index = PlannerHelpers::getClosestNextWaypointIndex(global_path, car_pos);
+        int closest_index = PlannerHelpers::getClosestNextWaypointIndex(global_path_, car_pos);
 
-        if (closest_index + 1 >= global_path.size())
-            closest_index = global_path.size() - 2;
+        if (closest_index + 1 >= global_path_.size())
+            closest_index = global_path_.size() - 2;
 
         double d = 0;
 
-        for (int i = closest_index; i < (int)global_path.size(); i++)
+        for (int i = closest_index; i < (int)global_path_.size(); i++)
         {
-            extracted_path.push_back(global_path[i]);
+            extracted_path.push_back(global_path_[i]);
             if (i > 0)
-                d += hypot(global_path[i].x - global_path[i - 1].x, global_path[i].y - global_path[i - 1].y);
+                d += hypot(global_path_[i].x - global_path_[i - 1].x, global_path_[i].y - global_path_[i - 1].y);
             if (d > params_.max_local_plan_distance)
                 break;
         }
 
         if (extracted_path.size() < 2)
         {
-            ROS_WARN("Karcher Local Planner Node: Extracted Global Plan is too small, Size = %d", (int)extracted_path.size());
+            ROS_WARN("Adaptive Open Local Planner Node: Extracted Global Plan is too small, Size = %d", (int)extracted_path.size());
             return;
         }
 
         PlannerHelpers::fixPathDensity(extracted_path, params_.path_density);
         PlannerHelpers::smoothPath(extracted_path, params_.smooth_tolerance, params_.smooth_data_weight, params_.smooth_weight);
-        PlannerHelpers::calculateAngleAndCost(extracted_path, prev_cost);
+        PlannerHelpers::calculateAngleAndCost(extracted_path, prev_cost_);
 
         nav_msgs::Path path;
         VisualizationHelpers::createExtractedPathMarker(extracted_path, path);
@@ -224,7 +239,7 @@ namespace adaptive_open_local_planner
 
     void AdaptiveOpenLocalPlannerROS::generateRollOuts(const std::vector<Waypoint> &path, std::vector<std::vector<Waypoint>> &roll_outs)
     {
-        // std::cout << "path size: " << path.size() << std::endl;
+        // DLOG(INFO) << "path size: " << path.size() ;
         if (path.size() == 0)
             return;
         if (params_.max_local_plan_distance <= 0)
@@ -234,7 +249,7 @@ namespace adaptive_open_local_planner
         int i_limit_index = (params_.sampling_tip_margin / 0.3) / params_.path_density;
         if (i_limit_index >= path.size())
             i_limit_index = path.size() - 1;
-        // std::cout << "i_limit_index: " << i_limit_index << std::endl;
+        // DLOG(INFO) << "i_limit_index: " << i_limit_index ;
 
         int closest_index;
         double initial_roll_in_distance;
@@ -246,15 +261,15 @@ namespace adaptive_open_local_planner
         car_pos.heading = current_state_in_map_frame_.yaw;
         PlannerHelpers::getRelativeInfo(path, car_pos, info);
         initial_roll_in_distance = info.perp_distance;
-        // std::cout << "closest_index: " << closest_index << std::endl;
-        // std::cout << "initial_roll_in_distance: " << initial_roll_in_distance << std::endl;
+        // DLOG(INFO) << "closest_index: " << closest_index ;
+        // DLOG(INFO) << "initial_roll_in_distance: " << initial_roll_in_distance ;
 
         double remaining_distance = 0;
         for (int i = 0; i < path.size() - 1; i++)
         {
             remaining_distance += distance2points(path[i], path[i + 1]);
         }
-        // std::cout << "remaining_distance: " << remaining_distance << std::endl;
+        // DLOG(INFO)) << "remaining_distance: " << remaining_distance ;
 
         // calculate the starting index
         double d_limit = 0;
@@ -266,7 +281,7 @@ namespace adaptive_open_local_planner
         double start_distance = params_.roll_in_speed_factor * current_state_in_map_frame_.speed + params_.roll_in_margin;
         if (start_distance > remaining_distance)
             start_distance = remaining_distance;
-        // std::cout << "start_distance: " << start_distance << std::endl;
+        // DLOG(INFO) << "start_distance: " << start_distance ;
 
         d_limit = 0;
         for (int i = 0; i < path.size() - 1; i++)
@@ -279,7 +294,7 @@ namespace adaptive_open_local_planner
                 break;
             }
         }
-        // std::cout << "far_index: " << far_index << std::endl;
+        // DLOG(INFO) << "far_index: " << far_index ;
 
         int central_trajectory_index = params_.roll_outs_number / 2;
         std::vector<double> end_laterals;
@@ -287,7 +302,7 @@ namespace adaptive_open_local_planner
         {
             double end_roll_in_distance = params_.roll_out_density * (i - central_trajectory_index);
             end_laterals.push_back(end_roll_in_distance);
-            // std::cout << "roll out num: " << i << ", end_roll_in_distance: " << end_roll_in_distance << std::endl;
+            // DLOG(INFO) << "roll out num: " << i << ", end_roll_in_distance: " << end_roll_in_distance ;
         }
 
         // calculate the actual calculation starting index
@@ -315,18 +330,18 @@ namespace adaptive_open_local_planner
 
             smoothing_end_index++;
         }
-        // std::cout << "start_index: " << start_index << ", end_index: " << end_index << ", smoothing_start_index: "
-        //             << smoothing_start_index << ", smoothing_end_index: " << smoothing_end_index << std::endl;
+        // DLOG(INFO) << "start_index: " << start_index << ", end_index: " << end_index << ", smoothing_start_index: "
+        //             << smoothing_start_index << ", smoothing_end_index: " << smoothing_end_index ;
 
         int nSteps = end_index - smoothing_start_index;
-        // std::cout << "nSteps: " << nSteps << std::endl;
+        // DLOG(INFO) << "nSteps: " << nSteps ;
 
         std::vector<double> inc_list;
         std::vector<double> inc_list_inc;
         for (int i = 0; i < params_.roll_outs_number + 1; i++)
         {
             double diff = end_laterals[i] - initial_roll_in_distance;
-            // std::cout << "diff: " << diff << std::endl;
+            // DLOG(INFO) << "diff: " << diff ;
             inc_list.push_back(diff / (double)nSteps);
             roll_outs.push_back(std::vector<Waypoint>());
             inc_list_inc.push_back(0);
@@ -428,7 +443,7 @@ namespace adaptive_open_local_planner
         for (int i = 0; i < params_.roll_outs_number + 1; i++)
         {
             PlannerHelpers::smoothPath(roll_outs[i], params_.smooth_tolerance, params_.smooth_data_weight, params_.smooth_weight);
-            PlannerHelpers::calculateAngleAndCost(roll_outs[i], prev_cost);
+            PlannerHelpers::calculateAngleAndCost(roll_outs[i], prev_cost_);
             PlannerHelpers::predictConstantTimeCostForTrajectory(roll_outs[i], current_state_in_map_frame_);
         }
 
@@ -447,7 +462,7 @@ namespace adaptive_open_local_planner
         car_pos.heading = current_state_in_map_frame_.yaw;
         PlannerHelpers::getRelativeInfo(extracted_path, car_pos, car_info);
         int curr_index = params_.roll_outs_number / 2 + floor(car_info.perp_distance / params_.roll_out_density);
-        // std::cout <<  "Current Index: " << curr_index << std::endl;
+        // DLOG(INFO) <<  "Current Index: " << curr_index ;
         if (curr_index < 0)
             curr_index = 0;
         else if (curr_index > params_.roll_outs_number)
@@ -582,7 +597,7 @@ namespace adaptive_open_local_planner
 
                     // check if obstacle is interesting (e.g. not far behind the robot)
                     Eigen::Vector2d obs_dir = obs - robot_pose;
-                    // if (obs_dir.dot(robot_orient) < 0 && obs_dir.norm() > cfg_.obstacles.costmap_obstacles_behind_robot_dist)
+                    // if (obs_dir.dot(robot_orient) < 0 && obs_dir.norm() > params_.obstacles.costmap_obstacles_behind_robot_dist)
                     //     continue;
                     if (obs_dir.dot(robot_orient) < 0)
                         continue;
@@ -634,4 +649,191 @@ namespace adaptive_open_local_planner
         velocity = distance / dt;
         steering_angle_rate = angle_diff / dt;
     }
+
+    void AdaptiveOpenLocalPlannerROS::goalCheck()
+    {
+        // Transform global plan to the frame of interest (w.r.t. the local costmap)
+        std::vector<geometry_msgs::PoseStamped> transformed_plan;
+        int goal_idx;
+        geometry_msgs::PoseStamped robot_pose;
+        costmap_ros_->getRobotPose(robot_pose);
+
+        geometry_msgs::TransformStamped tf_plan_to_global;
+        transformGlobalPlan(*tf_, global_plan_, robot_pose, *costmap_, global_frame_, params_.max_global_plan_lookahead_dist,
+                            transformed_plan, &goal_idx, &tf_plan_to_global);
+
+        // check if global goal is reached
+        geometry_msgs::PoseStamped global_goal;
+        tf2::doTransform(global_plan_.back(), global_goal, tf_plan_to_global);
+        double dx = global_goal.pose.position.x - robot_pose_.x();
+        double dy = global_goal.pose.position.y - robot_pose_.y();
+        double delta_orient = g2o::normalize_theta(tf2::getYaw(global_goal.pose.orientation) - robot_pose_.theta());
+
+        if (fabs(std::sqrt(dx * dx + dy * dy)) < params_.xy_goal_tolerance && fabs(delta_orient) < params_.yaw_goal_tolerance)
+        {
+            goal_reached_ = true;
+        }
+    }
+
+    bool AdaptiveOpenLocalPlannerROS::pruneGlobalPlan(const tf2_ros::Buffer &tf, const geometry_msgs::PoseStamped &global_pose, std::vector<geometry_msgs::PoseStamped> &global_plan, double dist_behind_robot)
+    {
+        if (global_plan.empty())
+            return true;
+
+        try
+        {
+            // transform robot pose into the plan frame (we do not wait here, since pruning not crucial, if missed a few times)
+            geometry_msgs::TransformStamped global_to_plan_transform = tf.lookupTransform(global_plan.front().header.frame_id, global_pose.header.frame_id, ros::Time(0));
+            geometry_msgs::PoseStamped robot;
+            tf2::doTransform(global_pose, robot, global_to_plan_transform);
+
+            double dist_thresh_sq = dist_behind_robot * dist_behind_robot;
+
+            // iterate plan until a pose close the robot is found
+            std::vector<geometry_msgs::PoseStamped>::iterator it = global_plan.begin();
+            std::vector<geometry_msgs::PoseStamped>::iterator erase_end = it;
+            while (it != global_plan.end())
+            {
+                double dx = robot.pose.position.x - it->pose.position.x;
+                double dy = robot.pose.position.y - it->pose.position.y;
+                double dist_sq = dx * dx + dy * dy;
+                if (dist_sq < dist_thresh_sq)
+                {
+                    erase_end = it;
+                    break;
+                }
+                ++it;
+            }
+            if (erase_end == global_plan.end())
+                return false;
+
+            if (erase_end != global_plan.begin())
+                global_plan.erase(global_plan.begin(), erase_end);
+        }
+        catch (const tf::TransformException &ex)
+        {
+            ROS_DEBUG("Cannot prune path since no transform is available: %s\n", ex.what());
+            return false;
+        }
+        return true;
+    }
+
+    bool AdaptiveOpenLocalPlannerROS::transformGlobalPlan(const tf2_ros::Buffer &tf, const std::vector<geometry_msgs::PoseStamped> &global_plan, const geometry_msgs::PoseStamped &global_pose, const costmap_2d::Costmap2D &costmap, const std::string &global_frame, double max_plan_length, std::vector<geometry_msgs::PoseStamped> &transformed_plan, int *current_goal_idx, geometry_msgs::TransformStamped *tf_plan_to_global) const
+    {
+        // this method is a slightly modified version of base_local_planner/goal_functions.h
+
+        const geometry_msgs::PoseStamped &plan_pose = global_plan[0];
+
+        transformed_plan.clear();
+
+        try
+        {
+            if (global_plan.empty())
+            {
+                ROS_ERROR("Received plan with zero length");
+                *current_goal_idx = 0;
+                return false;
+            }
+
+            // get plan_to_global_transform from plan frame to global_frame
+            geometry_msgs::TransformStamped plan_to_global_transform = tf.lookupTransform(global_frame, ros::Time(), plan_pose.header.frame_id, plan_pose.header.stamp, plan_pose.header.frame_id, ros::Duration(params_.transform_tolerance));
+
+            // let's get the pose of the robot in the frame of the plan
+            geometry_msgs::PoseStamped robot_pose;
+            tf.transform(global_pose, robot_pose, plan_pose.header.frame_id);
+
+            // we'll discard points on the plan that are outside the local costmap
+            double dist_threshold = std::max(costmap.getSizeInCellsX() * costmap.getResolution() / 2.0,
+                                             costmap.getSizeInCellsY() * costmap.getResolution() / 2.0);
+            dist_threshold *= 0.85; // just consider 85% of the costmap size to better incorporate point obstacle that are
+                                    // located on the border of the local costmap
+
+            int i = 0;
+            double sq_dist_threshold = dist_threshold * dist_threshold;
+            double sq_dist = 1e10;
+
+            // we need to loop to a point on the plan that is within a certain distance of the robot
+            for (int j = 0; j < (int)global_plan.size(); ++j)
+            {
+                double x_diff = robot_pose.pose.position.x - global_plan[j].pose.position.x;
+                double y_diff = robot_pose.pose.position.y - global_plan[j].pose.position.y;
+                double new_sq_dist = x_diff * x_diff + y_diff * y_diff;
+                if (new_sq_dist > sq_dist_threshold)
+                    break; // force stop if we have reached the costmap border
+
+                if (new_sq_dist < sq_dist) // find closest distance
+                {
+                    sq_dist = new_sq_dist;
+                    i = j;
+                }
+            }
+
+            geometry_msgs::PoseStamped newer_pose;
+
+            double plan_length = 0; // check cumulative Euclidean distance along the plan
+
+            // now we'll transform until points are outside of our distance threshold
+            while (i < (int)global_plan.size() && sq_dist <= sq_dist_threshold && (max_plan_length <= 0 || plan_length <= max_plan_length))
+            {
+                const geometry_msgs::PoseStamped &pose = global_plan[i];
+                tf2::doTransform(pose, newer_pose, plan_to_global_transform);
+
+                transformed_plan.push_back(newer_pose);
+
+                double x_diff = robot_pose.pose.position.x - global_plan[i].pose.position.x;
+                double y_diff = robot_pose.pose.position.y - global_plan[i].pose.position.y;
+                sq_dist = x_diff * x_diff + y_diff * y_diff;
+
+                // calculate distance to previous pose
+                if (i > 0 && max_plan_length > 0)
+                    plan_length += distance_points2d(global_plan[i - 1].pose.position, global_plan[i].pose.position);
+
+                ++i;
+            }
+
+            // if we are really close to the goal (<sq_dist_threshold) and the goal is not yet reached (e.g. orientation error >>0)
+            // the resulting transformed plan can be empty. In that case we explicitly inject the global goal.
+            if (transformed_plan.empty())
+            {
+                tf2::doTransform(global_plan.back(), newer_pose, plan_to_global_transform);
+
+                transformed_plan.push_back(newer_pose);
+
+                // Return the index of the current goal point (inside the distance threshold)
+                if (current_goal_idx)
+                    *current_goal_idx = int(global_plan.size()) - 1;
+            }
+            else
+            {
+                // Return the index of the current goal point (inside the distance threshold)
+                if (current_goal_idx)
+                    *current_goal_idx = i - 1; // subtract 1, since i was increased once before leaving the loop
+            }
+
+            // Return the transformation from the global plan to the global planning frame if desired
+            if (tf_plan_to_global)
+                *tf_plan_to_global = plan_to_global_transform;
+        }
+        catch (tf::LookupException &ex)
+        {
+            ROS_ERROR("No Transform available Error: %s\n", ex.what());
+            return false;
+        }
+        catch (tf::ConnectivityException &ex)
+        {
+            ROS_ERROR("Connectivity Error: %s\n", ex.what());
+            return false;
+        }
+        catch (tf::ExtrapolationException &ex)
+        {
+            ROS_ERROR("Extrapolation Error: %s\n", ex.what());
+            if (global_plan.size() > 0)
+                ROS_ERROR("Global Frame: %s Plan Frame size %d: %s\n", global_frame.c_str(), (unsigned int)global_plan.size(), global_plan[0].header.frame_id.c_str());
+
+            return false;
+        }
+
+        return true;
+    }
+
 } // end namespace adaptive_open_local_planner

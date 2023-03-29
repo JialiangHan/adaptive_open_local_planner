@@ -8,6 +8,7 @@ namespace adaptive_open_local_planner
 
         for (int i = 0; i < path.size(); i++)
         {
+            DLOG(INFO) << "index is " << i << " current point in global path is " << path[i].x << " " << path[i].y << " " << path[i].heading;
             d = distance2pointsSqr(path[i], current_pos);
             double angle_diff = angleBetweenTwoAnglesPositive(path[i].heading, current_pos.heading) * RAD2DEG;
 
@@ -18,7 +19,7 @@ namespace adaptive_open_local_planner
             }
         }
 
-        // ROS_INFO("Closest Global Waypoint Index = %d", min_index);
+        DLOG(INFO) << "current pos is " << current_pos.x << " " << current_pos.y << " " << current_pos.heading << " Closest Global Waypoint Index = " << min_index;
 
         return min_index;
     }
@@ -141,7 +142,7 @@ namespace adaptive_open_local_planner
         path = smoothed_path;
     }
 
-    double PlannerHelpers::calculateAngleAndCost(std::vector<Waypoint> &path, const double &prev_cost)
+    double PlannerHelpers::calculateAngleAndCost(std::vector<Waypoint> &path, const double &prev_cost_)
     {
         if (path.size() < 2)
             return 0;
@@ -150,7 +151,7 @@ namespace adaptive_open_local_planner
         {
             // path[0].heading = fixNegativeAngle(atan2(path[1].y - path[0].y, path[1].x - path[0].x));
             path[0].heading = atan2(path[1].y - path[0].y, path[1].x - path[0].x);
-            path[0].cost = prev_cost;
+            path[0].cost = prev_cost_;
             path[1].heading = path[0].heading;
             path[1].cost = path[0].cost + distance2points(path[0], path[1]);
             return path[1].cost;
@@ -158,7 +159,7 @@ namespace adaptive_open_local_planner
 
         // path[0].heading = fixNegativeAngle(atan2(path[1].y - path[0].y, path[1].x - path[0].x));
         path[0].heading = atan2(path[1].y - path[0].y, path[1].x - path[0].x);
-        path[0].cost = prev_cost;
+        path[0].cost = prev_cost_;
 
         for (int j = 1; j < path.size() - 1; j++)
         {
@@ -237,7 +238,7 @@ namespace adaptive_open_local_planner
 
         double m = (p1.y - p0.y) / (p1.x - p0.x);
         info.perp_distance = p1.y - m * p1.x; // solve for x = 0
-        // std::cout << "m: " << m << std::endl;
+        // DLOG(INFO) << "m: " << m ;
 
         if (std::isnan(info.perp_distance) || std::isinf(info.perp_distance))
             info.perp_distance = 0;
@@ -515,7 +516,7 @@ namespace adaptive_open_local_planner
             car_pos.x = current_state_in_map_frame.x;
             car_pos.y = current_state_in_map_frame.y;
             car_pos.heading = current_state_in_map_frame.yaw;
-            // std::cout << "Car heading: " << car_pos.heading << std::endl;
+            // DLOG(INFO) << "Car heading: " << car_pos.heading ;
             getRelativeInfo(extracted_path, car_pos, car_info);
 
             for (int it = 0; it < roll_outs.size(); it++)
@@ -526,19 +527,17 @@ namespace adaptive_open_local_planner
                 for (int ic = 0; ic < contour_points.size(); ic++)
                 {
                     //    if(skip_id == contour_points[icon].id) continue;
-                    // std::cout << "--> Checking obstacles against roll out no: " << it << std::endl;
+                    // DLOG(INFO) << "--> Checking obstacles against roll out no: " << it ;
                     RelativeInfo obj_info;
                     contour_points[ic].heading = car_pos.heading;
                     getRelativeInfo(extracted_path, contour_points[ic], obj_info);
                     double longitudinalDist = getExactDistanceOnTrajectory(extracted_path, car_info, obj_info);
-                    // std::cout << "Car_info front_index: " << car_info.front_index << std::endl;
-                    // std::cout << "Obj_info front_index: " << obj_info.front_index << std::endl;
-                    // std::cout << "Longitudinal distance: " << longitudinalDist << std::endl;
+                    // DLOG(INFO) << "Car_info front_index: " << car_info.front_index ;
+                    // DLOG(INFO) << "Obj_info front_index: " << obj_info.front_index ;
+                    // DLOG(INFO) << "Longitudinal distance: " << longitudinalDist ;
                     if (obj_info.front_index == 0 && longitudinalDist > 0)
                         longitudinalDist = -longitudinalDist;
-                    // std::cout << "Longitudinal distance: " << longitudinalDist << std::endl;
-
-            
+                    // DLOG(INFO) << "Longitudinal distance: " << longitudinalDist ;
 
                     // double close_in_percentage = 1;
                     // close_in_percentage = ((longitudinalDist- critical_long_front_distance)/params.rollInMargin)*4.0;
@@ -551,10 +550,10 @@ namespace adaptive_open_local_planner
                     //     distance_from_center = distance_from_center - distance_from_center * (1.0 - close_in_percentage);
 
                     double lateralDist = fabs(obj_info.perp_distance - distance_from_center);
-                    // std::cout << "Lateral distance: " << lateralDist << std::endl;
+                    // DLOG(INFO) << "Lateral distance: " << lateralDist ;
 
                     longitudinalDist = longitudinalDist - critical_long_front_distance;
-                    // std::cout << "Longitudinal distance: " << longitudinalDist << std::endl;
+                    // DLOG(INFO) << "Longitudinal distance: " << longitudinalDist ;
 
                     if (longitudinalDist < -vehicle_length || longitudinalDist > min_following_distance || lateralDist > lateral_skip_distance)
                     {
@@ -563,15 +562,15 @@ namespace adaptive_open_local_planner
 
                     if (safety_box.PointInsidePolygon(safety_box, contour_points[ic]) == true)
                     {
-                        std::cout << "Point inside polygon!!" << std::endl;
+                        // DLOG(INFO) << "Point inside polygon!!" ;
                         trajectory_costs[it].bBlocked = true;
                     }
 
                     if (lateralDist <= critical_lateral_distance && longitudinalDist >= -vehicle_length / 1.5 && longitudinalDist <= min_following_distance)
                     {
-                        // std::cout << "lateralDist: " << lateralDist << std::endl;
-                        // std::cout << "Critical lateral distance: " << critical_lateral_distance << std::endl;
-                        // std::cout << "longitudinalDist: " << longitudinalDist << std::endl;
+                        // DLOG(INFO) << "lateralDist: " << lateralDist ;
+                        // DLOG(INFO) << "Critical lateral distance: " << critical_lateral_distance ;
+                        // DLOG(INFO) << "longitudinalDist: " << longitudinalDist ;
                         trajectory_costs[it].bBlocked = true;
                     }
 
@@ -673,19 +672,10 @@ namespace adaptive_open_local_planner
                                         (priority_weight + transition_weight + lat_weight + long_weight + curvature_weight);
             // trajectory_costs[ic].cost = (priority_weight*trajectory_costs[ic].priority_cost + transition_weight*trajectory_costs[ic].transition_cost + collision_weight*trajectory_costs[ic].closest_obj_cost)/3.0;
 
-            std::cout << "Index: " << ic
-                      << ", Priority: " << trajectory_costs[ic].priority_cost
-                      << ", Transition: " << trajectory_costs[ic].transition_cost
-                      << ", Lat: " << trajectory_costs[ic].lateral_cost
-                      << ", Long: " << trajectory_costs[ic].longitudinal_cost
-                      //    << ", Change: " << trajectory_costs.at(ic).lane_change_cost
-                      //    << ", Collision: " << trajectory_costs[ic].closest_obj_cost
-                      << ", Curvature: " << trajectory_costs[ic].curvature_cost
-                      << ", Avg: " << trajectory_costs[ic].cost
-                      << std::endl;
+            // DLOG(INFO) << "Index: " << ic                       << ", Priority: " << trajectory_costs[ic].priority_cost                       << ", Transition: " << trajectory_costs[ic].transition_cost                       << ", Lat: " << trajectory_costs[ic].lateral_cost                       << ", Long: " << trajectory_costs[ic].longitudinal_cost                       //    << ", Change: " << trajectory_costs.at(ic).lane_change_cost                       //    << ", Collision: " << trajectory_costs[ic].closest_obj_cost                       << ", Curvature: " << trajectory_costs[ic].curvature_cost                       << ", Avg: " << trajectory_costs[ic].cost;
         }
 
-        std::cout << "------------------------ " << std::endl;
+        // DLOG(INFO) << "------------------------ ";
     }
 
     void PlannerHelpers::convert(const std::vector<geometry_msgs::PoseStamped> &orig_global_plan, std::vector<Waypoint> &path)
@@ -697,6 +687,17 @@ namespace adaptive_open_local_planner
             point.y = item.pose.position.y;
             point.heading = tf::getYaw(item.pose.orientation);
             path.emplace_back(point);
+        }
+    }
+
+    void PlannerHelpers::convert(const std::vector<geometry_msgs::PoseStamped> &orig_global_plan, nav_msgs::Path &path)
+    {
+        path.header.frame_id = "map";
+        for (const auto &item : orig_global_plan)
+        {
+            geometry_msgs::PoseStamped pose;
+            pose = item;
+            path.poses.emplace_back(pose);
         }
     }
 }

@@ -75,6 +75,7 @@ add_library(helpers
 
 target_link_libraries(helpers
        glog::glog 
+       ${catkin_LIBRARIES}
 )
 add_library(adaptive_open_local_planner
   src/adaptive_open_local_planner_ros.cpp

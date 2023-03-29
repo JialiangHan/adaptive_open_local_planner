@@ -112,7 +112,7 @@ public:
         bg::model::polygon<point_xy> poly2;
         bg::assign_points(poly2, points);
 
-        // std::cout << "Time elapsed: " << float( clock () - begin_time )/CLOCKS_PER_SEC*pow(10,3) << "ms" << std::endl;
+        // DLOG(INFO) << "Time elapsed: " << float( clock () - begin_time )/CLOCKS_PER_SEC*pow(10,3) << "ms" ;
 
         return bg::intersects(poly1, poly2);
     }

@@ -262,7 +262,7 @@ namespace adaptive_open_local_planner
 
             if (path_costs[i].bBlocked)
             {
-                std::cout << "Path " << i << " blocked!" << std::endl;
+                // DLOG(INFO) << "Path " << i << " blocked!";
                 weighted_roll_out_marker.color.r = 1.0;
                 weighted_roll_out_marker.color.g = 0.0;
                 weighted_roll_out_marker.color.b = 0.0;
