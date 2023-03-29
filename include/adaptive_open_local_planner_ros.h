@@ -53,7 +53,7 @@ namespace adaptive_open_local_planner
         /**
          * @brief Default constructor of the teb plugin
          */
-        AdaptiveOpenLocalPlannerROS(){};
+        AdaptiveOpenLocalPlannerROS();
         AdaptiveOpenLocalPlannerROS(std::string name, tf2_ros::Buffer *tf,
                                     costmap_2d::Costmap2DROS *costmap_ros);
         /**
