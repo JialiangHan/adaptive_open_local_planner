@@ -1,25 +1,40 @@
 #include "planner_helpers.h"
 namespace adaptive_open_local_planner
 {
+    // checked it`s correct.
     int PlannerHelpers::getClosestNextWaypointIndex(const std::vector<Waypoint> &path, const Waypoint &current_pos)
     {
         double d = 0, min_d = DBL_MAX;
         int min_index = 0;
-
         for (int i = 0; i < path.size(); i++)
         {
-            DLOG(INFO) << "index is " << i << " current point in global path is " << path[i].x << " " << path[i].y << " " << path[i].heading;
-            d = distance2pointsSqr(path[i], current_pos);
-            double angle_diff = angleBetweenTwoAnglesPositive(path[i].heading, current_pos.heading) * RAD2DEG;
 
-            if (d < min_d && angle_diff < 45)
+            d = distance2pointsSqr(path[i], current_pos);
+            bool ignore_angle_diff = true;
+            if (ignore_angle_diff)
             {
-                min_index = i;
-                min_d = d;
+                if (d < min_d)
+                {
+                    min_index = i;
+                    min_d = d;
+                }
+                // DLOG_IF(INFO, path[i].heading != 0) << "index is " << i << " current point in global path is " << path[i].x << " " << path[i].y << " " << path[i].heading << " distance is " << d;
+                DLOG(INFO) << "index is " << i << " current point in global path is " << path[i].x << " " << path[i].y << " " << path[i].heading << " distance is " << d;
+            }
+            else
+            {
+                double angle_diff = angleBetweenTwoAnglesPositive(path[i].heading, current_pos.heading) * RAD2DEG;
+
+                if (d < min_d && angle_diff < 45)
+                {
+                    min_index = i;
+                    min_d = d;
+                }
+                DLOG(INFO) << "index is " << i << " current point in global path is " << path[i].x << " " << path[i].y << " " << path[i].heading << " distance is " << d << " angle diff is " << angle_diff;
             }
         }
-
-        DLOG(INFO) << "current pos is " << current_pos.x << " " << current_pos.y << " " << current_pos.heading << " Closest Global Waypoint Index = " << min_index;
+        DLOG_IF(INFO, min_index != 0) << "current pos is " << current_pos.x << " " << current_pos.y << " " << current_pos.heading << " Closest Global Waypoint Index = " << min_index;
+        // DLOG(INFO) << "current pos is " << current_pos.x << " " << current_pos.y << " " << current_pos.heading << " Closest Global Waypoint Index = " << min_index;
 
         return min_index;
     }
@@ -58,51 +73,61 @@ namespace adaptive_open_local_planner
 
     void PlannerHelpers::fixPathDensity(std::vector<Waypoint> &path, const double &path_density)
     {
-        if (path.size() == 0 || path_density == 0)
+        if (path.size() == 0)
+        {
+            DLOG(WARNING) << "path size is zero!!!!";
             return;
+        }
 
-        double d = 0, a = 0;
-        double margin = path_density * 0.01;
-        double remaining = 0;
+        if (path_density == 0)
+        {
+            DLOG(WARNING) << "Parameter: path_density is zero!!!!";
+            return;
+        }
+
+        double distance = 0, angle = 0, margin = path_density * 0.01, remaining = 0;
         int num_points = 0;
         std::vector<Waypoint> fixed_path;
         fixed_path.push_back(path[0]);
         for (int start_index = 0, end_index = 1; end_index < path.size();)
         {
-            d += hypot(path[end_index].x - path[end_index - 1].x, path[end_index].y - path[end_index - 1].y) + remaining;
-            a = atan2(path[end_index].y - path[start_index].y, path[end_index].x - path[start_index].x);
+            distance += hypot(path[end_index].x - path[end_index - 1].x, path[end_index].y - path[end_index - 1].y) + remaining;
+            angle = atan2(path[end_index].y - path[start_index].y, path[end_index].x - path[start_index].x);
 
-            if (d < path_density - margin) // downsample
+            if (distance < path_density - margin) // downsample
             {
                 end_index++;
                 remaining = 0;
             }
-            else if (d > (path_density + margin)) // upsample
+            else if (distance > (path_density + margin)) // upsample
             {
                 Waypoint new_wp = path[start_index];
-                num_points = d / path_density;
+                num_points = distance / path_density;
                 for (int k = 0; k < num_points; k++)
                 {
-                    new_wp.x = new_wp.x + path_density * cos(a);
-                    new_wp.y = new_wp.y + path_density * sin(a);
+                    new_wp.x = new_wp.x + path_density * cos(angle);
+                    new_wp.y = new_wp.y + path_density * sin(angle);
                     fixed_path.push_back(new_wp);
                 }
-                remaining = d - num_points * path_density;
+                remaining = distance - num_points * path_density;
                 start_index++;
                 path[start_index] = new_wp;
-                d = 0;
+                distance = 0;
                 end_index++;
             }
             else
             {
-                d = 0;
+                distance = 0;
                 remaining = 0;
                 fixed_path.push_back(path[end_index]);
                 end_index++;
                 start_index = end_index - 1;
             }
         }
-
+        if (fixed_path.back().x != path.back().x || fixed_path.back().y != path.back().y)
+        {
+            fixed_path.push_back(path.back());
+        }
         path = fixed_path;
     }
 
@@ -142,10 +167,10 @@ namespace adaptive_open_local_planner
         path = smoothed_path;
     }
 
-    double PlannerHelpers::calculateAngleAndCost(std::vector<Waypoint> &path, const double &prev_cost_)
+    void PlannerHelpers::calculateAngleAndCost(std::vector<Waypoint> &path, const double &prev_cost_)
     {
         if (path.size() < 2)
-            return 0;
+            return;
 
         if (path.size() == 2)
         {
@@ -154,7 +179,7 @@ namespace adaptive_open_local_planner
             path[0].cost = prev_cost_;
             path[1].heading = path[0].heading;
             path[1].cost = path[0].cost + distance2points(path[0], path[1]);
-            return path[1].cost;
+            return;
         }
 
         // path[0].heading = fixNegativeAngle(atan2(path[1].y - path[0].y, path[1].x - path[0].x));
@@ -179,11 +204,12 @@ namespace adaptive_open_local_planner
                 path[j].heading = path[j + 1].heading;
         }
 
-        return path[j].cost;
+        return;
     }
 
     bool PlannerHelpers::getRelativeInfo(const std::vector<Waypoint> &path, const Waypoint &current_pos, RelativeInfo &info)
     {
+        DLOG(INFO) << "in getRelativeInfo:";
         if (path.size() < 2)
             return false;
 
@@ -687,6 +713,7 @@ namespace adaptive_open_local_planner
             point.y = item.pose.position.y;
             point.heading = tf::getYaw(item.pose.orientation);
             path.emplace_back(point);
+            DLOG(INFO) << "item in original global plan is " << item.pose.position.x << " " << item.pose.position.y << " " << item.pose.position.z << " orientation is " << tf::getYaw(item.pose.orientation);
         }
     }
 

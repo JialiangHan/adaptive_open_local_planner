@@ -99,6 +99,7 @@ namespace adaptive_open_local_planner
         }
         // store the global plan
         global_plan_.clear();
+        global_path_.clear();
         global_plan_ = orig_global_plan;
         global_path_received = true;
         PlannerHelpers::convert(global_plan_, global_path_);
@@ -213,6 +214,7 @@ namespace adaptive_open_local_planner
 
     void AdaptiveOpenLocalPlannerROS::extractGlobalPathSection(std::vector<Waypoint> &extracted_path)
     {
+        DLOG(INFO) << "In extractGlobalPathSection:";
         if (global_path_.size() < 2)
             return;
 
@@ -238,6 +240,11 @@ namespace adaptive_open_local_planner
                 break;
         }
 
+        for (int i = 0; i < (int)extracted_path.size(); i++)
+        {
+            DLOG(INFO) << i << "th element in extracted path is " << extracted_path[i].x << " " << extracted_path[i].y << " " << extracted_path[i].heading;
+        }
+
         if (extracted_path.size() < 2)
         {
             ROS_WARN("Adaptive Open Local Planner Node: Extracted Global Plan is too small, Size = %d", (int)extracted_path.size());
@@ -245,8 +252,20 @@ namespace adaptive_open_local_planner
         }
 
         PlannerHelpers::fixPathDensity(extracted_path, params_.path_density);
+        // for (const auto &element : extracted_path)
+        // {
+        //     DLOG(INFO) << "element in extracted path after fixPathDensity is " << element.x << " " << element.y << " " << element.heading;
+        // }
         PlannerHelpers::smoothPath(extracted_path, params_.smooth_tolerance, params_.smooth_data_weight, params_.smooth_weight);
+        // for (const auto &element : extracted_path)
+        // {
+        //     DLOG(INFO) << "element in extracted path after smoothPath is " << element.x << " " << element.y << " " << element.heading;
+        // }
         PlannerHelpers::calculateAngleAndCost(extracted_path, prev_cost_);
+        // for (const auto &element : extracted_path)
+        // {
+        //     DLOG(INFO) << "element in extracted path after calculateAngleAndCost is " << element.x << " " << element.y << " " << element.heading;
+        // }
 
         nav_msgs::Path path;
         VisualizationHelpers::createExtractedPathMarker(extracted_path, path);

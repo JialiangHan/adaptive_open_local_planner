@@ -28,9 +28,15 @@ namespace adaptive_open_local_planner
         static int getClosestNextWaypointIndex(const std::vector<Waypoint> &path, const Waypoint &current_pos);
         static double angleBetweenTwoAnglesPositive(const double &a1, const double &a2);
         static double fixNegativeAngle(const double &a);
+        /**
+         * @brief
+         *
+         * @param path
+         * @param path_density
+         */
         static void fixPathDensity(std::vector<Waypoint> &path, const double &path_density);
         static void smoothPath(std::vector<Waypoint> &path, const double &smooth_tolerance, const double &smooth_data_weight, const double &smooth_weight);
-        static double calculateAngleAndCost(std::vector<Waypoint> &path, const double &prev_cost_);
+        static void calculateAngleAndCost(std::vector<Waypoint> &path, const double &prev_cost_);
         static bool getRelativeInfo(const std::vector<Waypoint> &path, const Waypoint &current_pos, RelativeInfo &info);
         static void predictConstantTimeCostForTrajectory(std::vector<Waypoint> &path, const VehicleState &current_state_in_map_frame);
         static double getExactDistanceOnTrajectory(const std::vector<Waypoint> &trajectory, const RelativeInfo &p1, const RelativeInfo &p2);
