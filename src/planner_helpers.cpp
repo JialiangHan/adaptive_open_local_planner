@@ -19,7 +19,7 @@ namespace adaptive_open_local_planner
                     min_d = d;
                 }
                 // DLOG_IF(INFO, path[i].heading != 0) << "index is " << i << " current point in global path is " << path[i].x << " " << path[i].y << " " << path[i].heading << " distance is " << d;
-                DLOG(INFO) << "index is " << i << " current point in global path is " << path[i].x << " " << path[i].y << " " << path[i].heading << " distance is " << d;
+                // DLOG(INFO) << "index is " << i << " current point in global path is " << path[i].x << " " << path[i].y << " " << path[i].heading << " distance is " << d;
             }
             else
             {
@@ -33,7 +33,7 @@ namespace adaptive_open_local_planner
                 DLOG(INFO) << "index is " << i << " current point in global path is " << path[i].x << " " << path[i].y << " " << path[i].heading << " distance is " << d << " angle diff is " << angle_diff;
             }
         }
-        DLOG_IF(INFO, min_index != 0) << "current pos is " << current_pos.x << " " << current_pos.y << " " << current_pos.heading << " Closest Global Waypoint Index = " << min_index;
+        // DLOG_IF(INFO, min_index != 0) << "current pos is " << current_pos.x << " " << current_pos.y << " " << current_pos.heading << " Closest Global Waypoint Index = " << min_index;
         // DLOG(INFO) << "current pos is " << current_pos.x << " " << current_pos.y << " " << current_pos.heading << " Closest Global Waypoint Index = " << min_index;
 
         return min_index;
@@ -709,11 +709,9 @@ namespace adaptive_open_local_planner
         for (const auto &item : orig_global_plan)
         {
             Waypoint point;
-            point.x = item.pose.position.x;
-            point.y = item.pose.position.y;
-            point.heading = tf::getYaw(item.pose.orientation);
+            point = convert(item);
             path.emplace_back(point);
-            DLOG(INFO) << "item in original global plan is " << item.pose.position.x << " " << item.pose.position.y << " " << item.pose.position.z << " orientation is " << tf::getYaw(item.pose.orientation);
+            // DLOG(INFO) << "item in original global plan is " << item.pose.position.x << " " << item.pose.position.y << " " << item.pose.position.z << " orientation is " << tf::getYaw(item.pose.orientation);
         }
     }
 
@@ -726,5 +724,21 @@ namespace adaptive_open_local_planner
             pose = item;
             path.poses.emplace_back(pose);
         }
+    }
+
+    std::vector<Waypoint> PlannerHelpers::convert(const std::vector<geometry_msgs::PoseStamped> &orig_global_plan)
+    {
+        std::vector<Waypoint> global_plan;
+        convert(orig_global_plan, global_plan);
+        return global_plan;
+    }
+
+    Waypoint PlannerHelpers::convert(const geometry_msgs::PoseStamped &pose)
+    {
+        Waypoint point;
+        point.x = pose.pose.position.x;
+        point.y = pose.pose.position.y;
+        point.heading = tf::getYaw(pose.pose.orientation);
+        return point;
     }
 }

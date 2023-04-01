@@ -59,5 +59,9 @@ namespace adaptive_open_local_planner
         static void convert(const std::vector<geometry_msgs::PoseStamped> &orig_global_plan, std::vector<Waypoint> &path);
 
         static void convert(const std::vector<geometry_msgs::PoseStamped> &orig_global_plan, nav_msgs::Path &path);
+
+        static std::vector<Waypoint> convert(const std::vector<geometry_msgs::PoseStamped> &orig_global_plan);
+
+        static Waypoint convert(const geometry_msgs::PoseStamped &pose);
     };
 };

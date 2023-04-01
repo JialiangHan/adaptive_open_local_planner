@@ -23,7 +23,7 @@
   <node name="racecar_spawn" pkg="gazebo_ros" type="spawn_model" output="screen" args="-urdf -param robot_description -model racecar -x $(arg x) -y $(arg y) -z $(arg z) -R $(arg roll) -P $(arg pitch) -Y $(arg yaw)" />
   <include file="$(find racecar_control)/launch/racecar_control.launch" ns="/"/>
 	
-  <node name="map_server" pkg="map_server" type="map_server" args="$(find adaptive_open_local_planner)/maps/parking_lot_8_5_36.yaml" output="screen">
+  <node name="map_server" pkg="map_server" type="map_server" args="$(find adaptive_open_local_planner)/maps/parking_lot_8_5_36_resize.yaml" output="screen">
     <!-- <param name="frame_id" value="map"/> -->
   </node>
 

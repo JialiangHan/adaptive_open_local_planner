@@ -202,7 +202,7 @@ namespace adaptive_open_local_planner
         // Subscribers and Publishers
         ros::Subscriber odom_sub;
 
-        ros::Publisher global_path_rviz_pub;
+        ros::Publisher global_plan_rviz_pub;
 
         ros::Publisher extracted_path_rviz_pub;
         ros::Publisher current_pose_rviz_pub;
@@ -214,11 +214,10 @@ namespace adaptive_open_local_planner
 
         PoseSE2 robot_pose_; //!< Store current robot pose
         // Global Variables
-        bool global_path_received;
-        bool b_vehicle_state;
+        bool global_plan_received_;
+        bool vehicle_state_received_;
 
         VehicleState current_state_in_map_frame_;
-        std::vector<Waypoint> global_path_;
 
         double prev_cost_;
 

@@ -56,7 +56,7 @@ namespace adaptive_open_local_planner
 
             extracted_path_rviz_pub = nh.advertise<nav_msgs::Path>(params_.extracted_path_rviz_topic, 1, true);
 
-            global_path_rviz_pub = nh.advertise<nav_msgs::Path>("global_plan", 1, true);
+            global_plan_rviz_pub = nh.advertise<nav_msgs::Path>("global_plan", 1, true);
 
             current_pose_rviz_pub = nh.advertise<geometry_msgs::PoseStamped>(params_.current_pose_rviz_topic, 1, true);
             roll_outs_rviz_pub = nh.advertise<visualization_msgs::MarkerArray>(params_.roll_outs_rviz_topic, 1, true);
@@ -65,8 +65,8 @@ namespace adaptive_open_local_planner
             car_footprint_rviz_pub = nh.advertise<visualization_msgs::Marker>(params_.car_footprint_rviz_topic, 1, true);
             box_obstacle_rviz_pub = nh.advertise<visualization_msgs::Marker>(params_.box_obstacle_rviz_topic, 1, true);
 
-            global_path_received = false;
-            b_vehicle_state = false;
+            global_plan_received_ = false;
+            vehicle_state_received_ = false;
 
             prev_cost_ = 0;
 
@@ -99,10 +99,10 @@ namespace adaptive_open_local_planner
         }
         // store the global plan
         global_plan_.clear();
-        global_path_.clear();
+
         global_plan_ = orig_global_plan;
-        global_path_received = true;
-        PlannerHelpers::convert(global_plan_, global_path_);
+        global_plan_received_ = true;
+
         // we do not clear the local planner here, since setPlan is called frequently whenever the global planner updates the plan.
         // the local planner checks whether it is required to reinitialize the trajectory or not within each velocity computation step.
 
@@ -110,7 +110,7 @@ namespace adaptive_open_local_planner
         goal_reached_ = false;
         nav_msgs::Path global_path;
         PlannerHelpers::convert(orig_global_plan, global_path);
-        global_path_rviz_pub.publish(global_path);
+        global_plan_rviz_pub.publish(global_path);
 
         return true;
     }
@@ -145,12 +145,12 @@ namespace adaptive_open_local_planner
         costmap_ros_->getRobotPose(robot_pose);
 
         convertObstacle();
-        if (!global_path_received)
+        if (!global_plan_received_)
         {
             ROS_WARN("Global path not received!");
             return false;
         }
-        if (!b_vehicle_state)
+        if (!vehicle_state_received_)
         {
             ROS_WARN("Odom data not received!");
             return false;
@@ -189,7 +189,7 @@ namespace adaptive_open_local_planner
 
     void AdaptiveOpenLocalPlannerROS::odomCallback(const nav_msgs::Odometry::ConstPtr &odom_msg)
     {
-        b_vehicle_state = true;
+        vehicle_state_received_ = true;
         // DLOG(INFO) << "odom received.";
         current_state_in_map_frame_.speed = odom_msg->twist.twist.linear.x;
         if (fabs(odom_msg->twist.twist.linear.x) > 0.25)
@@ -211,11 +211,11 @@ namespace adaptive_open_local_planner
             current_pose_rviz_pub.publish(robot_pose);
         }
     }
-
+    // checked, fine
     void AdaptiveOpenLocalPlannerROS::extractGlobalPathSection(std::vector<Waypoint> &extracted_path)
     {
-        DLOG(INFO) << "In extractGlobalPathSection:";
-        if (global_path_.size() < 2)
+        // DLOG(INFO) << "In extractGlobalPathSection:";
+        if (global_plan_.size() < 2)
             return;
 
         extracted_path.clear();
@@ -224,26 +224,32 @@ namespace adaptive_open_local_planner
         car_pos.x = current_state_in_map_frame_.x;
         car_pos.y = current_state_in_map_frame_.y;
         car_pos.heading = current_state_in_map_frame_.yaw;
-        int closest_index = PlannerHelpers::getClosestNextWaypointIndex(global_path_, car_pos);
+        int closest_index = PlannerHelpers::getClosestNextWaypointIndex(PlannerHelpers::convert(global_plan_), car_pos);
 
-        if (closest_index + 1 >= global_path_.size())
-            closest_index = global_path_.size() - 2;
+        if (closest_index + 1 >= global_plan_.size())
+            closest_index = global_plan_.size() - 2;
 
         double d = 0;
 
-        for (int i = closest_index; i < (int)global_path_.size(); i++)
+        for (int i = closest_index; i < (int)global_plan_.size(); i++)
         {
-            extracted_path.push_back(global_path_[i]);
+            Waypoint point = PlannerHelpers::convert(global_plan_[i]);
+
+            extracted_path.push_back(point);
             if (i > 0)
-                d += hypot(global_path_[i].x - global_path_[i - 1].x, global_path_[i].y - global_path_[i - 1].y);
+            {
+                Waypoint previous_point = PlannerHelpers::convert(global_plan_[i - 1]);
+                d += hypot(point.x - previous_point.x, point.y - previous_point.y);
+            }
+
             if (d > params_.max_local_plan_distance)
                 break;
         }
 
-        for (int i = 0; i < (int)extracted_path.size(); i++)
-        {
-            DLOG(INFO) << i << "th element in extracted path is " << extracted_path[i].x << " " << extracted_path[i].y << " " << extracted_path[i].heading;
-        }
+        // for (int i = 0; i < (int)extracted_path.size(); i++)
+        // {
+        //     DLOG(INFO) << i << "th element in extracted path is " << extracted_path[i].x << " " << extracted_path[i].y << " " << extracted_path[i].heading;
+        // }
 
         if (extracted_path.size() < 2)
         {
@@ -707,6 +713,11 @@ namespace adaptive_open_local_planner
         if (fabs(std::sqrt(dx * dx + dy * dy)) < params_.xy_goal_tolerance && fabs(delta_orient) < params_.yaw_goal_tolerance)
         {
             goal_reached_ = true;
+            DLOG(INFO) << "Goal reached! current pose is " << robot_pose_.x() << " " << robot_pose_.y() << " " << robot_pose_.theta() << " goal pose is " << global_goal.pose.position.x << " " << global_goal.pose.position.y << " " << tf2::getYaw(global_goal.pose.orientation);
+        }
+        else
+        {
+            DLOG(INFO) << "Goal not reached! current pose is " << robot_pose_.x() << " " << robot_pose_.y() << " " << robot_pose_.theta() << " goal pose is " << global_goal.pose.position.x << " " << global_goal.pose.position.y << " " << tf2::getYaw(global_goal.pose.orientation);
         }
     }
 
