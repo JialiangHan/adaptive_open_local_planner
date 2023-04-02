@@ -287,12 +287,13 @@ namespace adaptive_open_local_planner
             return;
         roll_outs.clear();
 
+        float resolution = costmap_->getResolution();
+
         int i_limit_index = (params_.sampling_tip_margin / 0.3) / params_.path_density;
         if (i_limit_index >= path.size())
             i_limit_index = path.size() - 1;
         // DLOG(INFO) << "i_limit_index: " << i_limit_index ;
 
-        int closest_index;
         double initial_roll_in_distance;
 
         RelativeInfo info;
@@ -302,8 +303,7 @@ namespace adaptive_open_local_planner
         car_pos.heading = current_state_in_map_frame_.yaw;
         PlannerHelpers::getRelativeInfo(path, car_pos, info);
         initial_roll_in_distance = info.perp_distance;
-        // DLOG(INFO) << "closest_index: " << closest_index ;
-        // DLOG(INFO) << "initial_roll_in_distance: " << initial_roll_in_distance ;
+        // DLOG(INFO) << "initial_roll_in_distance: " << initial_roll_in_distance;
 
         double remaining_distance = 0;
         for (int i = 0; i < path.size() - 1; i++)
@@ -314,15 +314,13 @@ namespace adaptive_open_local_planner
 
         // calculate the starting index
         double d_limit = 0;
-        int start_index = 0;
-        int end_index = 0;
-        // int far_index = closest_index;
+        int start_index = 0, end_index = 0;
 
         // calculate end index
-        double start_distance = params_.roll_in_speed_factor * current_state_in_map_frame_.speed + params_.roll_in_margin;
+        double start_distance = params_.roll_in_speed_factor * current_state_in_map_frame_.speed + params_.roll_in_margin * resolution * 6;
         if (start_distance > remaining_distance)
             start_distance = remaining_distance;
-        // DLOG(INFO) << "start_distance: " << start_distance ;
+        DLOG(INFO) << "start_distance: " << start_distance;
 
         d_limit = 0;
         for (int i = 0; i < path.size() - 1; i++)
@@ -331,19 +329,23 @@ namespace adaptive_open_local_planner
 
             if (d_limit >= start_distance)
             {
+                DLOG(INFO) << "d_limit is " << d_limit;
                 end_index = i;
                 break;
             }
         }
-        // DLOG(INFO) << "far_index: " << far_index ;
+        DLOG(INFO) << "end_index: " << end_index;
 
         int central_trajectory_index = params_.roll_outs_number / 2;
         std::vector<double> end_laterals;
+        // TODO make this distance adaptive
+        //  distance from roll outs to global plan in vertical direction
+        double end_roll_in_distance;
         for (int i = 0; i < params_.roll_outs_number + 1; i++)
         {
-            double end_roll_in_distance = params_.roll_out_density * (i - central_trajectory_index);
-            end_laterals.push_back(end_roll_in_distance);
-            // DLOG(INFO) << "roll out num: " << i << ", end_roll_in_distance: " << end_roll_in_distance ;
+            end_roll_in_distance = params_.roll_out_density * (i - central_trajectory_index);
+            end_laterals.push_back(end_roll_in_distance * resolution * 5);
+            // DLOG(INFO) << "roll out num: " << i << ", end_roll_in_distance: " << end_roll_in_distance * resolution * 5;
         }
 
         // calculate the actual calculation starting index
@@ -355,7 +357,7 @@ namespace adaptive_open_local_planner
         {
             if (i > 0)
                 d_limit += distance2points(path[i], path[i - 1]);
-            if (d_limit > params_.sampling_tip_margin)
+            if (d_limit > params_.sampling_tip_margin * resolution * 6)
                 break;
 
             smoothing_start_index++;
@@ -366,23 +368,22 @@ namespace adaptive_open_local_planner
         {
             if (i > 0)
                 d_limit += distance2points(path[i], path[i - 1]);
-            if (d_limit > params_.sampling_tip_margin)
+            if (d_limit > params_.sampling_tip_margin * resolution * 6)
                 break;
 
             smoothing_end_index++;
         }
-        // DLOG(INFO) << "start_index: " << start_index << ", end_index: " << end_index << ", smoothing_start_index: "
-        //             << smoothing_start_index << ", smoothing_end_index: " << smoothing_end_index ;
+        // DLOG(INFO) << "start_index: " << start_index << ", end_index: " << end_index << ", smoothing_start_index: " << smoothing_start_index << ", smoothing_end_index: " << smoothing_end_index;
 
         int nSteps = end_index - smoothing_start_index;
-        // DLOG(INFO) << "nSteps: " << nSteps ;
+        // DLOG(INFO) << "nSteps: " << nSteps;
 
         std::vector<double> inc_list;
         std::vector<double> inc_list_inc;
         for (int i = 0; i < params_.roll_outs_number + 1; i++)
         {
             double diff = end_laterals[i] - initial_roll_in_distance;
-            // DLOG(INFO) << "diff: " << diff ;
+            DLOG(INFO) << "diff: " << diff;
             inc_list.push_back(diff / (double)nSteps);
             roll_outs.push_back(std::vector<Waypoint>());
             inc_list_inc.push_back(0);
@@ -461,7 +462,7 @@ namespace adaptive_open_local_planner
             if (j > 0)
                 d_limit += distance2points(path[j], path[j - 1]);
 
-            if (d_limit > params_.max_local_plan_distance) // max_roll_distance)
+            if (d_limit > params_.max_local_plan_distance * resolution) // max_roll_distance)
                 break;
 
             wp = path[j];

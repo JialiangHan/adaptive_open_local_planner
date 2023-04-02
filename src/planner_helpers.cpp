@@ -209,7 +209,7 @@ namespace adaptive_open_local_planner
 
     bool PlannerHelpers::getRelativeInfo(const std::vector<Waypoint> &path, const Waypoint &current_pos, RelativeInfo &info)
     {
-        DLOG(INFO) << "in getRelativeInfo:";
+        // DLOG(INFO) << "in getRelativeInfo:";
         if (path.size() < 2)
             return false;
 

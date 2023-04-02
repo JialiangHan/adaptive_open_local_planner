@@ -7,7 +7,6 @@ Panels:
         - /Global Options1
         - /Status1
         - /Path1
-        - /Path2
       Splitter Ratio: 0.5
     Tree Height: 719
   - Class: rviz/Selection
@@ -224,6 +223,14 @@ Visualization Manager:
       Shaft Length: 0.10000000149011612
       Topic: /extracted_path_rviz
       Unreliable: false
+      Value: true
+    - Class: rviz/MarkerArray
+      Enabled: true
+      Marker Topic: /roll_outs_rviz
+      Name: MarkerArray
+      Namespaces:
+        {}
+      Queue Size: 100
       Value: true
   Enabled: true
   Global Options:
