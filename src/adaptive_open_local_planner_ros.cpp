@@ -219,7 +219,7 @@ namespace adaptive_open_local_planner
             return;
 
         extracted_path.clear();
-
+        float resolution = costmap_->getResolution();
         Waypoint car_pos;
         car_pos.x = current_state_in_map_frame_.x;
         car_pos.y = current_state_in_map_frame_.y;
@@ -242,7 +242,7 @@ namespace adaptive_open_local_planner
                 d += hypot(point.x - previous_point.x, point.y - previous_point.y);
             }
 
-            if (d > params_.max_local_plan_distance)
+            if (d > params_.max_local_plan_distance * resolution * 6)
                 break;
         }
 
@@ -257,7 +257,7 @@ namespace adaptive_open_local_planner
             return;
         }
 
-        PlannerHelpers::fixPathDensity(extracted_path, params_.path_density);
+        PlannerHelpers::fixPathDensity(extracted_path, params_.path_density * resolution * 6);
         // for (const auto &element : extracted_path)
         // {
         //     DLOG(INFO) << "element in extracted path after fixPathDensity is " << element.x << " " << element.y << " " << element.heading;
@@ -320,7 +320,7 @@ namespace adaptive_open_local_planner
         double start_distance = params_.roll_in_speed_factor * current_state_in_map_frame_.speed + params_.roll_in_margin * resolution * 6;
         if (start_distance > remaining_distance)
             start_distance = remaining_distance;
-        DLOG(INFO) << "start_distance: " << start_distance;
+        // DLOG(INFO) << "start_distance: " << start_distance;
 
         d_limit = 0;
         for (int i = 0; i < path.size() - 1; i++)
@@ -329,12 +329,12 @@ namespace adaptive_open_local_planner
 
             if (d_limit >= start_distance)
             {
-                DLOG(INFO) << "d_limit is " << d_limit;
+                // DLOG(INFO) << "d_limit is " << d_limit;
                 end_index = i;
                 break;
             }
         }
-        DLOG(INFO) << "end_index: " << end_index;
+        // DLOG(INFO) << "end_index: " << end_index;
 
         int central_trajectory_index = params_.roll_outs_number / 2;
         std::vector<double> end_laterals;
@@ -383,7 +383,7 @@ namespace adaptive_open_local_planner
         for (int i = 0; i < params_.roll_outs_number + 1; i++)
         {
             double diff = end_laterals[i] - initial_roll_in_distance;
-            DLOG(INFO) << "diff: " << diff;
+            // DLOG(INFO) << "diff: " << diff;
             inc_list.push_back(diff / (double)nSteps);
             roll_outs.push_back(std::vector<Waypoint>());
             inc_list_inc.push_back(0);
@@ -462,7 +462,7 @@ namespace adaptive_open_local_planner
             if (j > 0)
                 d_limit += distance2points(path[j], path[j - 1]);
 
-            if (d_limit > params_.max_local_plan_distance * resolution) // max_roll_distance)
+            if (d_limit > params_.max_local_plan_distance * resolution * 6) // max_roll_distance)
                 break;
 
             wp = path[j];
