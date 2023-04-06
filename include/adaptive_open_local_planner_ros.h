@@ -111,8 +111,14 @@ namespace adaptive_open_local_planner
         void extractGlobalPathSection(std::vector<Waypoint> &extracted_path);
         void generateRollOuts(const std::vector<Waypoint> &path, std::vector<std::vector<Waypoint>> &roll_outs);
         void doOneStepStatic(const std::vector<std::vector<Waypoint>> &roll_outs, const std::vector<Waypoint> &extracted_path, std::vector<PathCost> &trajectory_costs, std::vector<Waypoint> &best_path);
-
-        void calculateVelocity(const std::vector<Waypoint> &best_path, float &velocity, float &steering_angle_rate);
+        /**
+         * @brief velocity is just from waypoint, calculate steering angle rate is needed here
+         *
+         * @param best_path
+         * @param velocity
+         * @param steering_angle_rate
+         */
+        void calculateVelocityAndSteeringAngleRate(const std::vector<Waypoint> &best_path, float &velocity, float &steering_angle_rate);
 
     protected:
         /**
@@ -171,6 +177,17 @@ namespace adaptive_open_local_planner
                                  const geometry_msgs::PoseStamped &global_pose, const costmap_2d::Costmap2D &costmap,
                                  const std::string &global_frame, double max_plan_length, std::vector<geometry_msgs::PoseStamped> &transformed_plan,
                                  int *current_goal_idx = NULL, geometry_msgs::TransformStamped *tf_plan_to_global = NULL) const;
+
+        /**
+         * @brief since speed info is not in global planner, so after extracting path from global path, calculate speed is needed
+         *
+         * @param best_path
+         */
+        void calculateLinearVelocity(std::vector<Waypoint> &best_path);
+
+        double calculateLinearVelocity(const Waypoint &current_point, const Waypoint &next_point);
+
+        double calculateAngleVelocity(const Waypoint &current_point, const Waypoint &next_point);
 
     private:
         // Definition of member variables

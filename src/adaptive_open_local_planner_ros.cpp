@@ -122,6 +122,7 @@ namespace adaptive_open_local_planner
         geometry_msgs::TwistStamped cmd_vel_stamped;
         bool outcome = computeVelocityCommands(dummy_pose, cmd_vel_stamped);
         cmd_vel = cmd_vel_stamped.twist;
+        DLOG(INFO) << "velocity is " << cmd_vel.linear.x << " " << cmd_vel.linear.y << " steering angle rate is " << cmd_vel.angular.z;
         return outcome;
     }
 
@@ -167,7 +168,7 @@ namespace adaptive_open_local_planner
         std::vector<PathCost> trajectory_costs;
         doOneStepStatic(roll_outs, extracted_path, trajectory_costs, best_path);
         float velocity, steering_angle_rate;
-        calculateVelocity(best_path, velocity, steering_angle_rate);
+        calculateVelocityAndSteeringAngleRate(best_path, velocity, steering_angle_rate);
 
         goalCheck();
         cmd_vel.twist.linear.x = velocity;
@@ -272,6 +273,8 @@ namespace adaptive_open_local_planner
         // {
         //     DLOG(INFO) << "element in extracted path after calculateAngleAndCost is " << element.x << " " << element.y << " " << element.heading;
         // }
+
+        calculateLinearVelocity(extracted_path);
 
         nav_msgs::Path path;
         VisualizationHelpers::createExtractedPathMarker(extracted_path, path);
@@ -680,16 +683,29 @@ namespace adaptive_open_local_planner
         }
     }
 
-    void AdaptiveOpenLocalPlannerROS::calculateVelocity(const std::vector<Waypoint> &best_path, float &velocity, float &steering_angle_rate)
+    void AdaptiveOpenLocalPlannerROS::calculateVelocityAndSteeringAngleRate(const std::vector<Waypoint> &best_path, float &velocity, float &steering_angle_rate)
     {
-        // set dt to a constant value
-        float dt = 1;
-        float distance, angle_diff;
-        distance = distance2points(best_path[0], best_path[1]);
-        // TODO angle normalization is needed
-        angle_diff = best_path[1].heading - best_path[0].heading;
-        velocity = distance / dt;
-        steering_angle_rate = angle_diff / dt;
+        Waypoint car_pos;
+        car_pos.x = current_state_in_map_frame_.x;
+        car_pos.y = current_state_in_map_frame_.y;
+        car_pos.heading = current_state_in_map_frame_.yaw;
+        int closest_index = PlannerHelpers::getClosestNextWaypointIndex(best_path, car_pos);
+
+        if (closest_index + 1 >= best_path.size())
+            closest_index = best_path.size() - 2;
+
+        velocity = best_path[closest_index].speed;
+        steering_angle_rate = calculateAngleVelocity(best_path[closest_index], best_path[closest_index + 1]);
+        // TODO how to calculate steering angle rage
+        //  // set dt to a constant value
+        //  float dt = 0.1;
+        //  float distance, angle_diff;
+        //  distance = distance2points(best_path[0], best_path[1]);
+        //  // TODO angle normalization is needed
+        //  angle_diff = best_path[1].heading - best_path[0].heading;
+        //  velocity = distance / dt;
+        //  steering_angle_rate = angle_diff / dt;
+        DLOG(INFO) << "velocity is " << velocity << " steering angle rate is " << steering_angle_rate;
     }
 
     void AdaptiveOpenLocalPlannerROS::goalCheck()
@@ -714,11 +730,11 @@ namespace adaptive_open_local_planner
         if (fabs(std::sqrt(dx * dx + dy * dy)) < params_.xy_goal_tolerance && fabs(delta_orient) < params_.yaw_goal_tolerance)
         {
             goal_reached_ = true;
-            DLOG(INFO) << "Goal reached! current pose is " << robot_pose_.x() << " " << robot_pose_.y() << " " << robot_pose_.theta() << " goal pose is " << global_goal.pose.position.x << " " << global_goal.pose.position.y << " " << tf2::getYaw(global_goal.pose.orientation);
+            // DLOG(INFO) << "Goal reached! current pose is " << robot_pose_.x() << " " << robot_pose_.y() << " " << robot_pose_.theta() << " goal pose is " << global_goal.pose.position.x << " " << global_goal.pose.position.y << " " << tf2::getYaw(global_goal.pose.orientation);
         }
         else
         {
-            DLOG(INFO) << "Goal not reached! current pose is " << robot_pose_.x() << " " << robot_pose_.y() << " " << robot_pose_.theta() << " goal pose is " << global_goal.pose.position.x << " " << global_goal.pose.position.y << " " << tf2::getYaw(global_goal.pose.orientation);
+            // DLOG(INFO) << "Goal not reached! current pose is " << robot_pose_.x() << " " << robot_pose_.y() << " " << robot_pose_.theta() << " goal pose is " << global_goal.pose.position.x << " " << global_goal.pose.position.y << " " << tf2::getYaw(global_goal.pose.orientation);
         }
     }
 
@@ -881,6 +897,41 @@ namespace adaptive_open_local_planner
         }
 
         return true;
+    }
+
+    void AdaptiveOpenLocalPlannerROS::calculateLinearVelocity(std::vector<Waypoint> &best_path)
+    {
+        for (uint i = 0; i < best_path.size() - 1; i++)
+        {
+            best_path[i].speed = calculateLinearVelocity(best_path[i], best_path[i + 1]);
+        }
+        // set last point speed to zero
+        best_path.back().speed = 0;
+    }
+
+    double AdaptiveOpenLocalPlannerROS::calculateLinearVelocity(const Waypoint &current_point, const Waypoint &next_point)
+    {
+        double velocity;
+        float dt = 2, distance;
+        distance = distance2points(current_point, next_point);
+        velocity = distance / dt;
+        return velocity;
+    }
+
+    double AdaptiveOpenLocalPlannerROS::calculateAngleVelocity(const Waypoint &current_point, const Waypoint &next_point)
+    {
+        double angle_velocity = 0;
+
+        // set dt to a constant value
+        float dt = 0.1, angle_diff;
+        angle_diff = next_point.heading - current_point.heading;
+        if (angle_diff > M_PI_2 || angle_diff < -M_PI_2)
+        {
+            DLOG(WARNING) << "angle diff larger than M_PI_2 or smaller than M_PI_2, angle diff is " << angle_diff;
+        }
+
+        angle_velocity = angle_diff / dt;
+        return angle_velocity;
     }
 
 } // end namespace adaptive_open_local_planner

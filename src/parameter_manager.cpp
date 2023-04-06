@@ -19,7 +19,7 @@ namespace adaptive_open_local_planner
     nh.getParam("car_footprint_rviz_topic", car_footprint_rviz_topic);
     nh.getParam("box_obstacle_rviz_topic", box_obstacle_rviz_topic);
     nh.getParam("cmd_vel_topic", cmd_vel_topic);
-    nh.getParam("planning_frequency", planning_frequency);
+    // nh.getParam("planning_frequency", planning_frequency);
     nh.getParam("max_speed", max_speed);
     nh.getParam("max_local_plan_distance", max_local_plan_distance);
     nh.getParam("path_density", path_density);
