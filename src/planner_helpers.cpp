@@ -741,4 +741,56 @@ namespace adaptive_open_local_planner
         point.heading = tf::getYaw(pose.pose.orientation);
         return point;
     }
+
+    std::vector<Eigen::Vector3f> PlannerHelpers::convert(const nav_msgs::Path::ConstPtr &path)
+    {
+        std::vector<Eigen::Vector3f> path_vec;
+
+        for (uint i = 0; i < path->poses.size(); ++i)
+        {
+            Eigen::Vector3f point;
+            point.x() = (path->poses[i].pose.position.x);
+            point.y() = (path->poses[i].pose.position.y);
+            // not sure this is correct;
+            point.z() = tf::getYaw(path->poses[i].pose.orientation);
+
+            path_vec.emplace_back(point);
+        }
+
+        return path_vec;
+    }
+
+    float PlannerHelpers::CalculateCurvature(const Eigen::Vector2f &pre, const Eigen::Vector2f &current, const Eigen::Vector2f &succ)
+    {
+        float curvature = 0;
+        // get three points from path
+
+        if (pre == current || current == succ)
+        {
+            LOG(WARNING) << "WARNING: In CalculateCurvature: some points are equal, skip these points for curvature calculation!! pre is " << pre.x() << " " << pre.y() << " current is " << current.x() << " " << current.y() << " succ is " << succ.x() << " " << succ.y();
+            return curvature;
+        }
+
+        // get two vector between these three nodes
+        Eigen::Vector2f pre_vector = current - pre;
+
+        Eigen::Vector2f succ_vector = succ - current;
+
+        // calculate delta distance and delta angle
+        float delta_distance = succ_vector.norm();
+        float pre_vector_length = pre_vector.norm();
+
+        // there would some calculation error here causing number inside acos greater than 1 or smaller than -1.
+        float delta_angle = std::acos(Clamp(pre_vector.dot(succ_vector) / (delta_distance * pre_vector_length), 1, -1));
+
+        curvature = abs(delta_angle) / pre_vector_length;
+        LOG_IF(INFO, curvature > 1000) << "current is: " << current(0, 0) << " y is: " << current.y() << " succ x is :" << succ(0, 0) << " y is: " << succ.y() << " pre x is :" << pre(0, 0) << " y is: " << pre.y() << " pre_vector x is :" << pre_vector(0, 0) << " y is: " << pre_vector.y() << " succ_vector x is :" << succ_vector(0, 0) << "y is: " << succ_vector.y() << " delta_distance is:" << delta_distance << " pre_vector_length is: " << pre_vector_length << " delta_angle is: " << delta_angle << " curvature is " << curvature;
+        return curvature;
+    }
+
+    float PlannerHelpers::Clamp(const float &number, const float &upper_bound,
+                                const float &lower_bound)
+    {
+        return std::max(lower_bound, std::min(number, upper_bound));
+    }
 }

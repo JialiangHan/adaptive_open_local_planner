@@ -78,6 +78,8 @@ namespace adaptive_open_local_planner
     double yaw_goal_tolerance;
     double transform_tolerance;
 
+    bool evaluate_path;
+
     ParameterManager()
     {
       odom_topic = "odom";
@@ -143,6 +145,8 @@ namespace adaptive_open_local_planner
       xy_goal_tolerance = 0.2;
       yaw_goal_tolerance = 0.1;
       transform_tolerance = 0.6;
+
+      evaluate_path = false;
     }
 
     /**

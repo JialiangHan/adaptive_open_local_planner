@@ -14,6 +14,7 @@
 #include "glog/logging.h"
 #include "gflags/gflags.h"
 #include "pose_se2.h"
+#include "path_evaluator.h"
 // base local planner base class and utilities
 #include <nav_core/base_local_planner.h>
 #include <base_local_planner/goal_functions.h>
@@ -239,6 +240,7 @@ namespace adaptive_open_local_planner
         double prev_cost_;
 
         ParameterManager params_;
+        std::shared_ptr<PathEvaluator> path_evaluator_ptr_;
 
     public:
         EIGEN_MAKE_ALIGNED_OPERATOR_NEW

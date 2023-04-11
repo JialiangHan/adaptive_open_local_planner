@@ -50,6 +50,14 @@ namespace adaptive_open_local_planner
             // ros::NodeHandle nh("~/" + name);
 
             params_.loadRosParamFromNodeHandle(nh);
+            DLOG(INFO) << "evaluate_path is " << params_.evaluate_path;
+            if (params_.evaluate_path)
+            {
+                std::string path_topic, cmd_topic;
+                path_topic = "extracted_path_rviz";
+                cmd_topic = "cmd_vel";
+                path_evaluator_ptr_.reset(new PathEvaluator(path_topic, cmd_topic));
+            }
 
             // Subscribe & Advertise
             odom_sub = nh.subscribe(params_.odom_topic, 1, &AdaptiveOpenLocalPlannerROS::odomCallback, this);
@@ -122,7 +130,12 @@ namespace adaptive_open_local_planner
         geometry_msgs::TwistStamped cmd_vel_stamped;
         bool outcome = computeVelocityCommands(dummy_pose, cmd_vel_stamped);
         cmd_vel = cmd_vel_stamped.twist;
-        DLOG(INFO) << "velocity is " << cmd_vel.linear.x << " " << cmd_vel.linear.y << " steering angle rate is " << cmd_vel.angular.z;
+        // DLOG(INFO) << "velocity is " << cmd_vel.linear.x << " " << cmd_vel.linear.y << " steering angle rate is " << cmd_vel.angular.z;
+        if (params_.evaluate_path)
+        {
+            path_evaluator_ptr_->EvaluatePath();
+        }
+
         return outcome;
     }
 
@@ -705,7 +718,7 @@ namespace adaptive_open_local_planner
         //  angle_diff = best_path[1].heading - best_path[0].heading;
         //  velocity = distance / dt;
         //  steering_angle_rate = angle_diff / dt;
-        DLOG(INFO) << "velocity is " << velocity << " steering angle rate is " << steering_angle_rate;
+        // DLOG(INFO) << "velocity is " << velocity << " steering angle rate is " << steering_angle_rate;
     }
 
     void AdaptiveOpenLocalPlannerROS::goalCheck()

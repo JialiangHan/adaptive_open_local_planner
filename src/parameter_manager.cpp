@@ -53,6 +53,8 @@ namespace adaptive_open_local_planner
     nh.getParam("long_weight", long_weight);
     nh.getParam("collision_weight", collision_weight);
     nh.getParam("curvature_weight", curvature_weight);
+
+    nh.getParam("evaluate_path", evaluate_path);
   }
 
 } // namespace adaptive_open_local_planner

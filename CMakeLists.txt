@@ -34,6 +34,9 @@ find_package(catkin REQUIRED COMPONENTS
 )
 FIND_PACKAGE(Glog REQUIRED)
 FIND_PACKAGE(Gflags)
+find_package(Python3 COMPONENTS Interpreter Development NumPy)
+find_package(PythonLibs 3.0 REQUIRED)
+find_package(Eigen3 REQUIRED)
 ## Generate added messages and services with any dependencies listed here
 generate_messages(
   DEPENDENCIES
@@ -65,6 +68,7 @@ include_directories(include)
 include_directories(
 include
 ${catkin_INCLUDE_DIRS}
+${Python3_INCLUDE_DIRS}
 )
 
 ## Declare a C++ library
@@ -83,6 +87,7 @@ add_library(adaptive_open_local_planner
    src/planner_helpers.cpp
    src/visualization_helpers.cpp
    src/parameter_manager.cpp
+   src/path_evaluator.cpp
 )
 
 
@@ -90,6 +95,7 @@ target_link_libraries(adaptive_open_local_planner
    ${EXTERNAL_LIBS}
    ${catkin_LIBRARIES}
        glog::glog 
+       ${PYTHON_LIBRARIES}   
 )
 
 

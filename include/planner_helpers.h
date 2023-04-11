@@ -11,6 +11,7 @@
 #include "gflags/gflags.h"
 #include <nav_msgs/Path.h>
 #include <geometry_msgs/PoseStamped.h>
+#include <Eigen/Dense>
 
 #define _USE_MATH_DEFINES
 #define RAD2DEG 180.0 / M_PI
@@ -63,5 +64,12 @@ namespace adaptive_open_local_planner
         static std::vector<Waypoint> convert(const std::vector<geometry_msgs::PoseStamped> &orig_global_plan);
 
         static Waypoint convert(const geometry_msgs::PoseStamped &pose);
+
+        static std::vector<Eigen::Vector3f> convert(const nav_msgs::Path::ConstPtr &path);
+
+        static float CalculateCurvature(const Eigen::Vector2f &pre, const Eigen::Vector2f &current, const Eigen::Vector2f &succ);
+
+        static float Clamp(const float &number, const float &upper_bound,
+                           const float &lower_bound);
     };
 };
