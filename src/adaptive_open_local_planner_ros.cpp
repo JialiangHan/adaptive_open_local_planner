@@ -21,7 +21,7 @@ namespace adaptive_open_local_planner
 
         google::EnableLogCleaner(5);
         FLAGS_alsologtostderr = 1;
-        DLOG(INFO) << "creating adaptive_open_local_planner planner";
+        // DLOG(INFO) << "creating adaptive_open_local_planner planner";
     }
     AdaptiveOpenLocalPlannerROS::AdaptiveOpenLocalPlannerROS(std::string name, tf2_ros::Buffer *tf,
                                                              costmap_2d::Costmap2DROS *costmap_ros)
@@ -39,7 +39,7 @@ namespace adaptive_open_local_planner
 
         google::EnableLogCleaner(5);
         FLAGS_alsologtostderr = 1;
-        DLOG(INFO) << "creating adaptive_open_local_planner planner";
+        // DLOG(INFO) << "creating adaptive_open_local_planner planner";
         initialize(name, tf, costmap_ros);
     }
     void AdaptiveOpenLocalPlannerROS::initialize(std::string name, tf2_ros::Buffer *tf, costmap_2d::Costmap2DROS *costmap_ros)
@@ -706,7 +706,8 @@ namespace adaptive_open_local_planner
 
         if (closest_index + 1 >= best_path.size())
             closest_index = best_path.size() - 2;
-
+        DLOG_IF(FATAL, closest_index < 0) << "FATAL: closest_index smaller than zero!!!";
+        DLOG_IF(FATAL, closest_index >= best_path.size()) << "FATAL: closest_index larger than best_path size!!!";
         velocity = best_path[closest_index].speed;
         steering_angle_rate = calculateAngleVelocity(best_path[closest_index], best_path[closest_index + 1]);
         // TODO how to calculate steering angle rage

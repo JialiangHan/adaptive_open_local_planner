@@ -16,7 +16,7 @@ HybridAStar:
 
   piecewise_cubic_bezier_interpolation: true
   # evaluate path using curvature, smoothness, distance to obstacle and steering angle
-  evaluate_path: true
+  evaluate_path: false
   # number of successors for hybrid a star
   number_of_successors: 5
   # for heuristic in hybrid a, use dubins or reedshepp or cubic bezier in analytical expansion

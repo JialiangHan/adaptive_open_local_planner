@@ -1,14 +1,14 @@
 <launch>
 
    <node pkg="move_base" type="move_base" respawn="false" name="move_base" output="screen">
-    <rosparam file="$(find bringup)/param/costmap_common_params.yaml" command="load" ns="global_costmap" /> 
-    <rosparam file="$(find bringup)/param/costmap_common_params.yaml" command="load" ns="local_costmap" />
-    <rosparam file="$(find bringup)/param/local_costmap_params.yaml" command="load" />
-    <rosparam file="$(find bringup)/param/global_costmap_params.yaml" command="load" /> 
-    <rosparam file="$(find bringup)/param/base_local_planner_params.yaml" command="load" />
-    <rosparam file="$(find bringup)/param/move_base_params.yaml" command="load" />
-    <rosparam file="$(find hybrid_astar)/param/parameters.yaml" command="load" />
-    <!-- <param name="base_global_planner" value="HybridAStar/HybridAStarPlanner" />这个标志是选择使用特定的全局规划器 -->
+    <rosparam file="$(find adaptive_open_local_planner)/param/costmap_common_params.yaml" command="load" ns="global_costmap" /> 
+    <rosparam file="$(find adaptive_open_local_planner)/param/costmap_common_params.yaml" command="load" ns="local_costmap" />
+    <rosparam file="$(find adaptive_open_local_planner)/param/local_costmap_params.yaml" command="load" />
+    <rosparam file="$(find adaptive_open_local_planner)/param/global_costmap_params.yaml" command="load" /> 
+    <rosparam file="$(find adaptive_open_local_planner)/param/base_local_planner_params.yaml" command="load" ns="AdaptiveOpenLocalPlannerROS" />
+    <rosparam file="$(find adaptive_open_local_planner)/param/move_base_params.yaml" command="load" />
+    <rosparam file="$(find adaptive_open_local_planner)/param/parameters.yaml"  command="load" />
+    <param name="base_global_planner" value="HybridAStar/HybridAStarPlanner" />这个标志是选择使用特定的全局规划器
     <param name="base_local_planner" value="adaptive_open_local_planner/AdaptiveOpenLocalPlannerROS" />
     <!-- <remap from="/move_base/AdaptiveOpenLocalPlannerROS/odom" to="/odom" /> -->
         <!-- <param name="base_local_planner" value="teb_local_planner/TebLocalPlannerROS" /> -->

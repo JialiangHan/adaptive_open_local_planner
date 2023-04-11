@@ -146,7 +146,7 @@ namespace adaptive_open_local_planner
       yaw_goal_tolerance = 0.1;
       transform_tolerance = 0.6;
 
-      evaluate_path = false;
+      evaluate_path = true;
     }
 
     /**

@@ -15,12 +15,14 @@ namespace adaptive_open_local_planner
     void PathEvaluator::CallbackPath(const nav_msgs::Path::ConstPtr &path, const std::string &topic_name)
     {
         path_ = PlannerHelpers::convert(path);
+        // DLOG(INFO) << "set path";
     }
 
     void PathEvaluator::CallbackCmd(const geometry_msgs::Twist::ConstPtr &cmd, const std::string &topic_name)
     {
         linear_velocity_vec_.emplace_back(cmd->linear.x);
         angular_velocity_vec_.emplace_back(cmd->angular.z);
+        // DLOG(INFO) << "set speed";
     }
 
     int PathEvaluator::CalculateCurvature()
@@ -127,6 +129,7 @@ namespace adaptive_open_local_planner
 
     void PathEvaluator::EvaluatePath()
     {
+        DLOG(INFO) << "in EvaluatePath:";
         CalculateCurvature();
         CalculateSmoothness();
         Plot();
