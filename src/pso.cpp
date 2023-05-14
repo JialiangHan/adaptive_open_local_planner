@@ -3,12 +3,12 @@
 namespace adaptive_open_local_planner
 {
 
-    PSO::PSO(const std::vector<std::vector<Waypoint>> &divided_path, const std::vector<std::pair<float, float>> &linear_velocity_boundary, const float &weighting, const float &personal_learning_rate, const float &global_learning_rate)
+    PSO::PSO(const std::vector<std::vector<Waypoint>> &divided_path, const std::vector<std::pair<float, float>> &linear_velocity_boundary, const float &weighting, const float &personal_learning_rate, const float &global_learning_rate, const float &cost_difference_boundary, const int &max_interation)
     {
-        initialize(divided_path, linear_velocity_boundary, weighting, personal_learning_rate, global_learning_rate);
+        initialize(divided_path, linear_velocity_boundary, weighting, personal_learning_rate, global_learning_rate, cost_difference_boundary, max_interation);
     }
 
-    bool PSO::initialize(const std::vector<std::vector<Waypoint>> &divided_path, const std::vector<std::pair<float, float>> &linear_velocity_boundary, const float &weighting, const float &personal_learning_rate, const float &global_learning_rate)
+    bool PSO::initialize(const std::vector<std::vector<Waypoint>> &divided_path, const std::vector<std::pair<float, float>> &linear_velocity_boundary, const float &weighting, const float &personal_learning_rate, const float &global_learning_rate, const float &cost_difference_boundary, const int &max_interation)
     {
         divided_path_ = divided_path;
 
@@ -18,23 +18,26 @@ namespace adaptive_open_local_planner
 
         global_learning_rate_ = global_learning_rate;
 
+        cost_difference_boundary_ = cost_difference_boundary;
+
+        max_interation_ = max_interation;
+
         setConstraint(linear_velocity_boundary);
         initializeSwarm();
         DLOG(INFO) << "PSO initialize success!";
         return true;
     }
 
-    std::vector<float> evaluate()
+    std::vector<float> PSO::evaluate()
     {
         std::vector<float> linear_velocity_vec;
-        float cost_difference_boundary = ? ? ? ;
-        int max_interation = ? ? ;
-        for (size_t iter = 0; iter < max_iteration; iter++)
+
+        for (size_t iter = 0; iter < max_interation_; iter++)
         {
             updateSwarm();
             updateGlobalBest();
             // end condition
-            if (std::abs(global_best_.cost - prev_global_best_.cost) <= cost_difference_boundary)
+            if (std::abs(global_best_.cost - prev_global_best_.cost) <= cost_difference_boundary_)
             {
                 break;
             }
@@ -64,7 +67,8 @@ namespace adaptive_open_local_planner
         // 4. update personal best
         if (particle.cost < particle.personal_best.cost)
         {
-            particle.personal_best = particle;
+            particle.personal_best.position_vec = particle.position_vec;
+            particle.personal_best.cost = particle.cost;
         }
     }
 
@@ -123,7 +127,8 @@ namespace adaptive_open_local_planner
             // initialize cost
             particle_swarm_[i].cost = evaluateFitnessFunction(particle_swarm_[i]);
             // initialize personal best to itself
-            particle_swarm_[i].personal_best = particle_swarm_[i];
+            particle_swarm_[i].personal_best.position_vec = particle_swarm_[i].position_vec;
+            particle_swarm_[i].personal_best.cost = particle_swarm_[i].cost;
         }
         updateGlobalBest();
     }
@@ -155,7 +160,7 @@ namespace adaptive_open_local_planner
         return cost;
     }
 
-    std::vector<float> convertGlobalBestToVelocityVec()
+    std::vector<float> PSO::convertGlobalBestToVelocityVec()
     {
         return global_best_.position_vec;
     }

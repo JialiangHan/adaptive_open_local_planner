@@ -67,3 +67,13 @@ AdaptiveOpenLocalPlannerROS:
   global_plan_prune_distance : 1
 
   evaluate_path: true
+
+  weighting: 0.1
+  personal_learning_rate: 0.1
+  global_learning_rate: 0.1
+  cost_difference_boundary: 1
+  max_interation: 10000
+  max_linear_velocity: 5
+  min_linear_velocity: 0
+  max_angular_acceleration: 10
+  min_angular_acceleration: -10

@@ -83,6 +83,8 @@ namespace adaptive_open_local_planner
     float weighting;
     float personal_learning_rate;
     float global_learning_rate;
+    float cost_difference_boundary;
+    float max_interation;
     // speed limit
     float max_linear_velocity;
     float min_linear_velocity;
@@ -161,6 +163,8 @@ namespace adaptive_open_local_planner
       weighting = 0.1;
       personal_learning_rate = 0.1;
       global_learning_rate = 0.1;
+      cost_difference_boundary = 1;
+      max_interation = 10000;
       // speed limit
       max_linear_velocity = 5;
       min_linear_velocity = 0;

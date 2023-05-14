@@ -88,6 +88,8 @@ add_library(adaptive_open_local_planner
    src/visualization_helpers.cpp
    src/parameter_manager.cpp
    src/path_evaluator.cpp
+   src/velocity_planner.cpp
+   src/pso.cpp
 )
 
 

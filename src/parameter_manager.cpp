@@ -59,6 +59,9 @@ namespace adaptive_open_local_planner
     nh.getParam("weighting", weighting);
     nh.getParam("personal_learning_rate", personal_learning_rate);
     nh.getParam("global_learning_rate", global_learning_rate);
+    nh.getParam("cost_difference_boundary", cost_difference_boundary);
+    nh.getParam("max_interation", max_interation);
+
     nh.getParam("max_linear_velocity", max_linear_velocity);
     nh.getParam("min_linear_velocity", min_linear_velocity);
     nh.getParam("max_angular_acceleration", max_angular_acceleration);

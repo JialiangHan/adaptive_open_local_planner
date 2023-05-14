@@ -1,14 +1,15 @@
 #include <Eigen/Core>
 #include "glog/logging.h"
 #include "gflags/gflags.h"
-
+#include "struct_defs.h"
+#include "planner_helpers.h"
 namespace adaptive_open_local_planner
 {
     class PSO
     {
     public:
         PSO(){};
-        PSO(const std::vector<std::vector<Waypoint>> &divided_path, const std::vector<std::pair<float, float>> &linear_velocity_boundary, const float &weighting, const float &personal_learning_rate, const float &global_learning_rate);
+        PSO(const std::vector<std::vector<Waypoint>> &divided_path, const std::vector<std::pair<float, float>> &linear_velocity_boundary, const float &weighting, const float &personal_learning_rate, const float &global_learning_rate, const float &cost_difference_boundary, const int &max_interation);
 
         /**
          * @brief main loop
@@ -16,6 +17,12 @@ namespace adaptive_open_local_planner
          * @return std::vector<float> list of vehicle speed
          */
         std::vector<float> evaluate();
+        struct PersonalBest
+        {
+            // this is position, list of velocity for local path
+            std::vector<float> position_vec;
+            float cost = INFINITY;
+        };
 
         struct Particle
         {
@@ -24,13 +31,13 @@ namespace adaptive_open_local_planner
             // this is velocity which update position
             std::vector<float> velocity_vec;
             float cost;
-            Particle personal_best;
+            PersonalBest personal_best;
         };
 
         typedef std::vector<Particle> Swarm;
 
     private:
-        bool initialize(const std::vector<std::vector<Waypoint>> &divided_path, const std::vector<std::pair<float, float>> &linear_velocity_boundary, const float &weighting, const float &personal_learning_rate_, const float &global_learning_rate_);
+        bool initialize(const std::vector<std::vector<Waypoint>> &divided_path, const std::vector<std::pair<float, float>> &linear_velocity_boundary, const float &weighting, const float &personal_learning_rate, const float &global_learning_rate, const float &cost_difference_boundary, const int &max_interation);
 
         void setConstraint(const std::vector<std::pair<float, float>> &linear_velocity_boundary);
 
@@ -57,6 +64,10 @@ namespace adaptive_open_local_planner
 
         float global_learning_rate_;
 
+        float cost_difference_boundary_;
+
+        float max_interation_;
+
         std::vector<std::pair<float, float>> linear_velocity_boundary_;
 
         std::vector<Particle> particle_swarm_;
@@ -64,5 +75,5 @@ namespace adaptive_open_local_planner
         Particle global_best_;
 
         Particle prev_global_best_;
-    }
-}
+    };
+};

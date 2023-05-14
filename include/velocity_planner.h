@@ -9,9 +9,8 @@
  *
  **/
 #pragma once
-#include "struct_defs.h"
 #include "planner_helpers.h"
-
+#include "pso.h"
 namespace adaptive_open_local_planner
 {
     class VelocityPlanner
@@ -19,7 +18,7 @@ namespace adaptive_open_local_planner
     public:
         VelocityPlanner(){};
 
-        VelocityPlanner(some parameter);
+        VelocityPlanner(const float &max_linear_velocity, const float &min_linear_velocity, const float &max_angular_acceleration, const float &min_angular_acceleration, const float &weighting, const float &personal_learning_rate, const float &global_learning_rate, const float &cost_difference_boundary, const int &max_interation);
 
         std::vector<float> planVelocity(const std::vector<Waypoint> &local_path);
 
@@ -70,6 +69,8 @@ namespace adaptive_open_local_planner
         float weighting_;
         float personal_learning_rate_;
         float global_learning_rate_;
+        float cost_difference_boundary_;
+        float max_interation_;
         // speed limit
         float max_linear_velocity_;
 
@@ -83,5 +84,5 @@ namespace adaptive_open_local_planner
         std::vector<std::pair<float, float>> linear_velocity_boundary_;
 
         std::shared_ptr<PSO> pso_ptr_;
-    }
-}
+    };
+};

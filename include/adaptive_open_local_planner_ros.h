@@ -15,6 +15,7 @@
 #include "gflags/gflags.h"
 #include "pose_se2.h"
 #include "path_evaluator.h"
+#include "velocity_planner.h"
 // base local planner base class and utilities
 #include <nav_core/base_local_planner.h>
 #include <base_local_planner/goal_functions.h>

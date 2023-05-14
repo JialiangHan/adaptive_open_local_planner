@@ -3,7 +3,7 @@
 namespace adaptive_open_local_planner
 {
 
-    VelocityPlanner(const float &max_linear_velocity, const float &min_linear_velocity, const float &max_angular_acceleration, const float &min_angular_acceleration, const float &weighting, const float &personal_learning_rate, const float &global_learning_rate)
+    VelocityPlanner::VelocityPlanner(const float &max_linear_velocity, const float &min_linear_velocity, const float &max_angular_acceleration, const float &min_angular_acceleration, const float &weighting, const float &personal_learning_rate, const float &global_learning_rate, const float &cost_difference_boundary, const int &max_interation)
     {
         max_linear_velocity_ = max_linear_velocity;
         min_linear_velocity_ = min_linear_velocity;
@@ -12,6 +12,8 @@ namespace adaptive_open_local_planner
         weighting_ = weighting;
         personal_learning_rate_ = personal_learning_rate;
         global_learning_rate_ = global_learning_rate;
+        cost_difference_boundary_ = cost_difference_boundary;
+        max_interation_ = max_interation;
     }
 
     std::vector<float> VelocityPlanner::planVelocity(const std::vector<Waypoint> &local_path)
@@ -19,7 +21,7 @@ namespace adaptive_open_local_planner
         std::vector<std::vector<Waypoint>> divided_path;
         dividePath(local_path, divided_path);
         findVelocityBoundary(local_path);
-        pso_ptr_.reset(new PSO(divided_path, linear_velocity_boundary_, weighting_, personal_learning_rate_, global_learning_rate_));
+        pso_ptr_.reset(new PSO(divided_path, linear_velocity_boundary_, weighting_, personal_learning_rate_, global_learning_rate_, cost_difference_boundary_, max_interation_));
         return pso_ptr_->evaluate();
     }
 
@@ -80,7 +82,7 @@ namespace adaptive_open_local_planner
         {
             if ((i + 1) >= local_path.size())
             {
-                DLOG(WARING) << "index exceed vector size!!!";
+                DLOG(WARNING) << "index exceed vector size!!!";
             }
             else
             {
@@ -106,7 +108,7 @@ namespace adaptive_open_local_planner
         {
             if ((i + 1) >= local_path.size())
             {
-                DLOG(WARING) << "index exceed vector size!!!";
+                DLOG(WARNING) << "index exceed vector size!!!";
             }
             else
             {

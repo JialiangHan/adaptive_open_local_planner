@@ -59,7 +59,7 @@ namespace adaptive_open_local_planner
                 path_evaluator_ptr_.reset(new PathEvaluator(path_topic, cmd_topic));
             }
 
-            velocity_planner_ptr_.reset(new VelocityPlanner(params_.max_linear_velocity, params_.min_linear_velocity, params_.max_angular_acceleration, params_.min_angular_acceleration, params_.weighting, params_.personal_learning_rate, params_.global_learning_rate));
+            velocity_planner_ptr_.reset(new VelocityPlanner(params_.max_linear_velocity, params_.min_linear_velocity, params_.max_angular_acceleration, params_.min_angular_acceleration, params_.weighting, params_.personal_learning_rate, params_.global_learning_rate, params_.cost_difference_boundary, params_.max_interation));
 
             // Subscribe & Advertise
             odom_sub = nh.subscribe(params_.odom_topic, 1, &AdaptiveOpenLocalPlannerROS::odomCallback, this);
@@ -710,18 +710,11 @@ namespace adaptive_open_local_planner
             closest_index = best_path.size() - 2;
         DLOG_IF(FATAL, closest_index < 0) << "FATAL: closest_index smaller than zero!!!";
         DLOG_IF(FATAL, closest_index >= best_path.size()) << "FATAL: closest_index larger than best_path size!!!";
-        velocity = best_path[closest_index].speed;
+        // change to velocity planner
+        std::vector<float> velocity_vec = velocity_planner_ptr_->planVelocity(best_path);
+        velocity = velocity_vec[closest_index];
+        // velocity = best_path[closest_index].speed;
         steering_angle_rate = calculateAngleVelocity(best_path[closest_index], best_path[closest_index + 1]);
-        // TODO how to calculate steering angle rage
-        //  // set dt to a constant value
-        //  float dt = 0.1;
-        //  float distance, angle_diff;
-        //  distance = distance2points(best_path[0], best_path[1]);
-        //  // TODO angle normalization is needed
-        //  angle_diff = best_path[1].heading - best_path[0].heading;
-        //  velocity = distance / dt;
-        //  steering_angle_rate = angle_diff / dt;
-        // DLOG(INFO) << "velocity is " << velocity << " steering angle rate is " << steering_angle_rate;
     }
 
     void AdaptiveOpenLocalPlannerROS::goalCheck()
