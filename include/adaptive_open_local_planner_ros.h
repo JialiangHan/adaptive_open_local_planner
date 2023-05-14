@@ -242,6 +242,8 @@ namespace adaptive_open_local_planner
         ParameterManager params_;
         std::shared_ptr<PathEvaluator> path_evaluator_ptr_;
 
+        std::shared_ptr<VelocityPlanner> velocity_planner_ptr_;
+
     public:
         EIGEN_MAKE_ALIGNED_OPERATOR_NEW
     };

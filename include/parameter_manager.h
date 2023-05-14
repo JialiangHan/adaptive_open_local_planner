@@ -79,6 +79,15 @@ namespace adaptive_open_local_planner
     double transform_tolerance;
 
     bool evaluate_path;
+    // PSO parameter
+    float weighting;
+    float personal_learning_rate;
+    float global_learning_rate;
+    // speed limit
+    float max_linear_velocity;
+    float min_linear_velocity;
+    float max_angular_acceleration;
+    float min_angular_acceleration;
 
     ParameterManager()
     {
@@ -147,6 +156,16 @@ namespace adaptive_open_local_planner
       transform_tolerance = 0.6;
 
       evaluate_path = true;
+
+      // PSO parameter
+      weighting = 0.1;
+      personal_learning_rate = 0.1;
+      global_learning_rate = 0.1;
+      // speed limit
+      max_linear_velocity = 5;
+      min_linear_velocity = 0;
+      max_angular_acceleration = 10;
+      min_angular_acceleration = -10;
     }
 
     /**

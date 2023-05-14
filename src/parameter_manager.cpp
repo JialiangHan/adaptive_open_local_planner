@@ -55,6 +55,14 @@ namespace adaptive_open_local_planner
     nh.getParam("curvature_weight", curvature_weight);
 
     nh.getParam("evaluate_path", evaluate_path);
+
+    nh.getParam("weighting", weighting);
+    nh.getParam("personal_learning_rate", personal_learning_rate);
+    nh.getParam("global_learning_rate", global_learning_rate);
+    nh.getParam("max_linear_velocity", max_linear_velocity);
+    nh.getParam("min_linear_velocity", min_linear_velocity);
+    nh.getParam("max_angular_acceleration", max_angular_acceleration);
+    nh.getParam("min_angular_acceleration", min_angular_acceleration);
   }
 
 } // namespace adaptive_open_local_planner

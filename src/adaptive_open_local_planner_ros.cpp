@@ -59,6 +59,8 @@ namespace adaptive_open_local_planner
                 path_evaluator_ptr_.reset(new PathEvaluator(path_topic, cmd_topic));
             }
 
+            velocity_planner_ptr_.reset(new VelocityPlanner(params_.max_linear_velocity, params_.min_linear_velocity, params_.max_angular_acceleration, params_.min_angular_acceleration, params_.weighting, params_.personal_learning_rate, params_.global_learning_rate));
+
             // Subscribe & Advertise
             odom_sub = nh.subscribe(params_.odom_topic, 1, &AdaptiveOpenLocalPlannerROS::odomCallback, this);
 

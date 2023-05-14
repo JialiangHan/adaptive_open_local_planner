@@ -65,11 +65,21 @@ namespace adaptive_open_local_planner
 
         static Waypoint convert(const geometry_msgs::PoseStamped &pose);
 
+        static Eigen::Vector2f convert(const Waypoint &way_point);
+
         static std::vector<Eigen::Vector3f> convert(const nav_msgs::Path::ConstPtr &path);
 
         static float CalculateCurvature(const Eigen::Vector2f &pre, const Eigen::Vector2f &current, const Eigen::Vector2f &succ);
 
+        static float CalculateCurvature(const Waypoint &pre, const Waypoint &current);
+
         static float Clamp(const float &number, const float &upper_bound,
                            const float &lower_bound);
+
+        static std::vector<Waypoint> extractVector(const std::vector<Waypoint> &base, int start_index, int end_index);
+
+        static float getDistance(const std::vector<Waypoint> &local_path);
+
+        static float getDistance(const Waypoint &prev, const Waypoint &current);
     };
 };

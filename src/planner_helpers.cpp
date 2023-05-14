@@ -783,7 +783,7 @@ namespace adaptive_open_local_planner
         // there would some calculation error here causing number inside acos greater than 1 or smaller than -1.
         float delta_angle = std::acos(Clamp(pre_vector.dot(succ_vector) / (delta_distance * pre_vector_length), 1, -1));
 
-        curvature = abs(delta_angle) / pre_vector_length;
+        curvature = (delta_angle) / pre_vector_length;
         LOG_IF(INFO, curvature > 1000) << "current is: " << current(0, 0) << " y is: " << current.y() << " succ x is :" << succ(0, 0) << " y is: " << succ.y() << " pre x is :" << pre(0, 0) << " y is: " << pre.y() << " pre_vector x is :" << pre_vector(0, 0) << " y is: " << pre_vector.y() << " succ_vector x is :" << succ_vector(0, 0) << "y is: " << succ_vector.y() << " delta_distance is:" << delta_distance << " pre_vector_length is: " << pre_vector_length << " delta_angle is: " << delta_angle << " curvature is " << curvature;
         return curvature;
     }
@@ -793,4 +793,28 @@ namespace adaptive_open_local_planner
     {
         return std::max(lower_bound, std::min(number, upper_bound));
     }
+
+    std::vector<Waypoint> PlannerHelpers::extractVector(const std::vector<Waypoint> &base, int start_index, int end_index)
+    {
+        std::vector<Waypoint> slice(base.begin() + start_index, base.begin() + end_index + 1);
+        return slice;
+    }
+
+    float PlannerHelpers::getDistance(const std::vector<Waypoint> &local_path)
+    {
+        float distance = 0;
+        for (size_t i = 0; i < local_path.size() - 1; i++)
+        {
+            distance = distance + getDistance(local_path[i], local_path[i + 1]);
+        }
+        return distance;
+    }
+
+    float PlannerHelpers::getDistance(const Waypoint &prev, const Waypoint &current)
+    {
+        float distance = 0;
+        distance = std::sqrt((prev.x - current.x) * (prev.x - current.x) + (prev.y - current.y) * (prev.y - current.y));
+        return distance;
+    }
+
 }
