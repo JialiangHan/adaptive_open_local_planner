@@ -9,7 +9,7 @@ namespace adaptive_open_local_planner
     {
     public:
         PSO(){};
-        PSO(const std::vector<std::vector<Waypoint>> &divided_path, const std::vector<std::pair<float, float>> &linear_velocity_boundary, const float &weighting, const float &personal_learning_rate, const float &global_learning_rate, const float &cost_difference_boundary, const int &max_interation);
+        PSO(const std::vector<std::vector<Waypoint>> &divided_path, const std::vector<std::pair<float, float>> &linear_velocity_boundary, const float &weighting, const float &personal_learning_rate, const float &global_learning_rate, const float &cost_difference_boundary, const int &max_interation, const int &number_of_particle);
 
         /**
          * @brief main loop
@@ -37,7 +37,7 @@ namespace adaptive_open_local_planner
         typedef std::vector<Particle> Swarm;
 
     private:
-        bool initialize(const std::vector<std::vector<Waypoint>> &divided_path, const std::vector<std::pair<float, float>> &linear_velocity_boundary, const float &weighting, const float &personal_learning_rate, const float &global_learning_rate, const float &cost_difference_boundary, const int &max_interation);
+        bool initialize(const std::vector<std::vector<Waypoint>> &divided_path, const std::vector<std::pair<float, float>> &linear_velocity_boundary, const float &weighting, const float &personal_learning_rate, const float &global_learning_rate, const float &cost_difference_boundary, const int &max_interation, const int &number_of_particle);
 
         void setConstraint(const std::vector<std::pair<float, float>> &linear_velocity_boundary);
 
@@ -67,6 +67,8 @@ namespace adaptive_open_local_planner
         float cost_difference_boundary_;
 
         float max_interation_;
+
+        int number_of_particle_;
 
         std::vector<std::pair<float, float>> linear_velocity_boundary_;
 

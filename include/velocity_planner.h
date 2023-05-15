@@ -18,7 +18,7 @@ namespace adaptive_open_local_planner
     public:
         VelocityPlanner(){};
 
-        VelocityPlanner(const float &max_linear_velocity, const float &min_linear_velocity, const float &max_angular_acceleration, const float &min_angular_acceleration, const float &weighting, const float &personal_learning_rate, const float &global_learning_rate, const float &cost_difference_boundary, const int &max_interation);
+        VelocityPlanner(const float &path_divide_factor, const float &max_linear_velocity, const float &min_linear_velocity, const float &max_angular_acceleration, const float &min_angular_acceleration, const float &weighting, const float &personal_learning_rate, const float &global_learning_rate, const float &cost_difference_boundary, const int &max_interation, const int &number_of_particle);
 
         std::vector<float> planVelocity(const std::vector<Waypoint> &local_path);
 
@@ -57,20 +57,18 @@ namespace adaptive_open_local_planner
          * @brief for every point on the local path, find its corresponding velocity limit both linear and angular
          *
          * @param local_path
-         * @param max_linear_velocity global max linear velocity
-         * @param min_linear_velocity global min linear velocity
-         * @param max_angular_velocity  global max angular velocity
-         * @param min_angular_velocity global min angular velocity
          */
-        void findVelocityBoundary(const std::vector<Waypoint> &local_path);
+        void findVelocityBoundary(const std::vector<std::vector<Waypoint>> &divided_path);
 
     private:
+        float path_divide_factor_;
         // PSO parameter
         float weighting_;
         float personal_learning_rate_;
         float global_learning_rate_;
         float cost_difference_boundary_;
         float max_interation_;
+        int number_of_particle_;
         // speed limit
         float max_linear_velocity_;
 

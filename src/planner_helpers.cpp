@@ -788,6 +788,27 @@ namespace adaptive_open_local_planner
         return curvature;
     }
 
+    float PlannerHelpers::CalculateCurvature(const Waypoint &pre, const Waypoint &current)
+    {
+        DLOG(INFO) << "in CalculateCurvature";
+        float curvature = 0;
+        // get three points from path
+
+        if (pre == current)
+        {
+            LOG(WARNING) << "WARNING: In CalculateCurvature: some points are equal, skip these points for curvature calculation!! pre is " << pre.x << " " << pre.y << " current is " << current.x << " " << current.y;
+            return curvature;
+        }
+
+        float delta_distance = getDistance(pre, current);
+
+        float delta_angle = current.heading - pre.heading;
+
+        curvature = (delta_angle) / delta_distance;
+        // LOG_IF(INFO, curvature > 1000) << "current is: " << current(0, 0) << " y is: " << current.y() << " succ x is :" << succ(0, 0) << " y is: " << succ.y() << " pre x is :" << pre(0, 0) << " y is: " << pre.y() << " pre_vector x is :" << pre_vector(0, 0) << " y is: " << pre_vector.y() << " succ_vector x is :" << succ_vector(0, 0) << "y is: " << succ_vector.y() << " delta_distance is:" << delta_distance << " pre_vector_length is: " << pre_vector_length << " delta_angle is: " << delta_angle << " curvature is " << curvature;
+        return curvature;
+    }
+
     float PlannerHelpers::Clamp(const float &number, const float &upper_bound,
                                 const float &lower_bound)
     {
@@ -802,9 +823,11 @@ namespace adaptive_open_local_planner
 
     float PlannerHelpers::getDistance(const std::vector<Waypoint> &local_path)
     {
+        // DLOG(INFO) << "in getDistance";
         float distance = 0;
         for (size_t i = 0; i < local_path.size() - 1; i++)
         {
+            // DLOG(INFO) << "index is " << i;
             distance = distance + getDistance(local_path[i], local_path[i + 1]);
         }
         return distance;
@@ -812,8 +835,10 @@ namespace adaptive_open_local_planner
 
     float PlannerHelpers::getDistance(const Waypoint &prev, const Waypoint &current)
     {
+        // DLOG(INFO) << "in getDistance";
         float distance = 0;
         distance = std::sqrt((prev.x - current.x) * (prev.x - current.x) + (prev.y - current.y) * (prev.y - current.y));
+        // DLOG(INFO) << "end of getDistance";
         return distance;
     }
 

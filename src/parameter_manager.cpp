@@ -66,6 +66,10 @@ namespace adaptive_open_local_planner
     nh.getParam("min_linear_velocity", min_linear_velocity);
     nh.getParam("max_angular_acceleration", max_angular_acceleration);
     nh.getParam("min_angular_acceleration", min_angular_acceleration);
+
+    nh.getParam("path_divide_factor", path_divide_factor);
+
+    nh.getParam("number_of_particle", number_of_particle);
   }
 
 } // namespace adaptive_open_local_planner

@@ -3,7 +3,7 @@
 #include <vector>
 namespace adaptive_open_local_planner
 {
-    typedef struct
+    struct Waypoint
     {
         double x;
         double y;
@@ -13,7 +13,11 @@ namespace adaptive_open_local_planner
         double speed;
         double cost;
         double time_cost;
-    } Waypoint;
+        bool operator==(const Waypoint &rhs) const
+        {
+            return (x == rhs.x) && (y == rhs.y) && (heading == rhs.heading); // or another approach as above
+        };
+    };
 
     typedef struct
     {
