@@ -10,7 +10,7 @@ namespace adaptive_open_local_planner
 
     bool PSO::initialize(const std::vector<std::vector<Waypoint>> &divided_path, const std::vector<std::pair<float, float>> &linear_velocity_boundary, const float &weighting, const float &personal_learning_rate, const float &global_learning_rate, const float &cost_difference_boundary, const int &max_interation, const int &number_of_particle)
     {
-        DLOG(INFO) << "size of divided_path is " << divided_path.size();
+        // DLOG(INFO) << "size of divided_path is " << divided_path.size();
         divided_path_ = divided_path;
 
         weighting_ = weighting;
@@ -51,7 +51,7 @@ namespace adaptive_open_local_planner
 
     void PSO::setConstraint(const std::vector<std::pair<float, float>> &linear_velocity_boundary)
     {
-        DLOG(INFO) << "size of linear_velocity_boundary is " << linear_velocity_boundary.size();
+        // DLOG(INFO) << "size of linear_velocity_boundary is " << linear_velocity_boundary.size();
         linear_velocity_boundary_ = linear_velocity_boundary;
     }
 
@@ -125,7 +125,7 @@ namespace adaptive_open_local_planner
         for (size_t i = 0; i < number_of_particle_; i++)
         {
             Particle particle;
-            DLOG(INFO) << "size of linear_velocity_boundary_ is " << linear_velocity_boundary_.size();
+            // DLOG(INFO) << "size of linear_velocity_boundary_ is " << linear_velocity_boundary_.size();
             for (size_t i = 0; i < linear_velocity_boundary_.size(); i++)
             {
                 // DLOG(INFO) << "index is " << i;
@@ -152,13 +152,13 @@ namespace adaptive_open_local_planner
 
     float PSO::evaluateFitnessFunction(const Particle &particle)
     {
-        DLOG(INFO) << "in evaluateFitnessFunction";
+        // DLOG(INFO) << "in evaluateFitnessFunction";
         float distance, cost = 0;
-        DLOG(INFO) << "size of particle.position_vec is " << particle.position_vec.size();
+        // DLOG(INFO) << "size of particle.position_vec is " << particle.position_vec.size();
         for (size_t i = 0; i < particle.position_vec.size() - 1; i++)
         {
             // DLOG(INFO) << "current index is " << i;
-            DLOG(INFO) << "size of divided_path_ is " << divided_path_.size();
+            // DLOG(INFO) << "size of divided_path_ is " << divided_path_.size();
             // set distance
             DLOG_IF(FATAL, particle.position_vec.size() != (divided_path_.size() + 1)) << "velocity vec size is not equal to (divided path size +1)";
             distance = PlannerHelpers::getDistance(divided_path_[i]);

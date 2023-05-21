@@ -29,12 +29,12 @@ namespace adaptive_open_local_planner
 
     void VelocityPlanner::dividePath(const std::vector<Waypoint> &local_path, std::vector<std::vector<Waypoint>> &divided_path)
     {
-        DLOG(INFO) << "in dividePath.";
+        // DLOG(INFO) << "in dividePath.";
         //   find delta curvature of total local path
         float delta_curvature_global = findDeltaCurvature(local_path);
         for (uint i = 0; i < local_path.size(); i++)
         {
-            DLOG(INFO) << "index is " << i;
+            // DLOG(INFO) << "index is " << i;
             for (uint j = i + 1; j < local_path.size(); j++)
             {
                 float current_delta_curvature = findDeltaCurvature(local_path, i, j);
@@ -44,7 +44,7 @@ namespace adaptive_open_local_planner
                     {
                         divided_path.emplace_back(PlannerHelpers::extractVector(local_path, i, j));
                         i = j + 1;
-                        DLOG(INFO) << "divided path.";
+                        // DLOG(INFO) << "divided path.";
                         break;
                     }
                     else
@@ -63,7 +63,7 @@ namespace adaptive_open_local_planner
                 }
             }
         }
-        DLOG(INFO) << "divided_path size is " << divided_path.size();
+        // DLOG(INFO) << "divided_path size is " << divided_path.size();
         DLOG_IF(FATAL, divided_path.size() == 0) << "something wrong, divided path size is zero!!!";
     }
 
@@ -164,6 +164,7 @@ namespace adaptive_open_local_planner
             {
                 limit_pair.second = max_linear_velocity_;
             }
+            // DLOG(INFO) << "max linear velocity is " << limit_pair.second;
             limit_pair.first = min_linear_velocity_;
 
             linear_velocity_boundary_.emplace_back(limit_pair);
@@ -178,7 +179,7 @@ namespace adaptive_open_local_planner
                 }
                 else
                 {
-                    DLOG(WARNING) << "current_curvature is zero!!!";
+                    // DLOG(WARNING) << "current_curvature is zero!!!";
                     // set to a large value
                     upper_limit = 100000;
                 }
@@ -191,11 +192,12 @@ namespace adaptive_open_local_planner
                 {
                     limit_pair.second = max_linear_velocity_;
                 }
+                // DLOG(INFO) << "max linear velocity is " << limit_pair.second;
                 limit_pair.first = min_linear_velocity_;
 
                 linear_velocity_boundary_.emplace_back(limit_pair);
             }
         }
-        DLOG(INFO) << "linear_velocity_boundary_ size is " << linear_velocity_boundary_.size();
+        // DLOG(INFO) << "linear_velocity_boundary_ size is " << linear_velocity_boundary_.size();
     }
 }

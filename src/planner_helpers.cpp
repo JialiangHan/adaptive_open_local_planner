@@ -790,7 +790,7 @@ namespace adaptive_open_local_planner
 
     float PlannerHelpers::CalculateCurvature(const Waypoint &pre, const Waypoint &current)
     {
-        DLOG(INFO) << "in CalculateCurvature";
+        // DLOG(INFO) << "in CalculateCurvature";
         float curvature = 0;
         // get three points from path
 

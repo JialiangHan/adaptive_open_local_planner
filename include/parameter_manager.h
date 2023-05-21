@@ -168,7 +168,7 @@ namespace adaptive_open_local_planner
       cost_difference_boundary = 1;
       max_interation = 10000;
       // speed limit
-      max_linear_velocity = 5;
+      max_linear_velocity = 1;
       min_linear_velocity = 0;
       max_angular_acceleration = 10;
       min_angular_acceleration = -10;

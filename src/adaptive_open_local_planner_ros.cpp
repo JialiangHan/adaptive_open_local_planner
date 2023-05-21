@@ -50,7 +50,7 @@ namespace adaptive_open_local_planner
             // ros::NodeHandle nh("~/" + name);
 
             params_.loadRosParamFromNodeHandle(nh);
-            DLOG(INFO) << "evaluate_path is " << params_.evaluate_path;
+            // DLOG(INFO) << "evaluate_path is " << params_.evaluate_path;
             if (params_.evaluate_path)
             {
                 std::string path_topic, cmd_topic;
@@ -59,6 +59,7 @@ namespace adaptive_open_local_planner
                 path_evaluator_ptr_.reset(new PathEvaluator(path_topic, cmd_topic));
             }
 
+            // DLOG(INFO) << "max linear velocity is " << params_.max_linear_velocity;
             velocity_planner_ptr_.reset(new VelocityPlanner(params_.path_divide_factor, params_.max_linear_velocity, params_.min_linear_velocity, params_.max_angular_acceleration, params_.min_angular_acceleration, params_.weighting, params_.personal_learning_rate, params_.global_learning_rate, params_.cost_difference_boundary, params_.max_interation, params_.number_of_particle));
 
             // Subscribe & Advertise
@@ -713,6 +714,7 @@ namespace adaptive_open_local_planner
         // change to velocity planner
         std::vector<float> velocity_vec = velocity_planner_ptr_->planVelocity(best_path);
         velocity = velocity_vec[closest_index];
+        DLOG(INFO) << "closest_index is " << closest_index << " velocity is " << velocity_vec[closest_index];
         // velocity = best_path[closest_index].speed;
         steering_angle_rate = calculateAngleVelocity(best_path[closest_index], best_path[closest_index + 1]);
     }
