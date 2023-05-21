@@ -3,7 +3,7 @@
 namespace adaptive_open_local_planner
 {
 
-    VelocityPlanner::VelocityPlanner(const float &path_divide_factor, const float &max_linear_velocity, const float &min_linear_velocity, const float &max_angular_acceleration, const float &min_angular_acceleration, const float &weighting, const float &personal_learning_rate, const float &global_learning_rate, const float &cost_difference_boundary, const int &max_interation, const int &number_of_particle)
+    VelocityPlanner::VelocityPlanner(const float &path_divide_factor, const float &current_speed, const float &max_linear_velocity, const float &min_linear_velocity, const float &max_angular_acceleration, const float &min_angular_acceleration, const float &weighting, const float &personal_learning_rate, const float &global_learning_rate, const float &cost_difference_boundary, const int &max_interation, const int &number_of_particle)
     {
         path_divide_factor_ = path_divide_factor;
         max_linear_velocity_ = max_linear_velocity;
@@ -16,6 +16,7 @@ namespace adaptive_open_local_planner
         cost_difference_boundary_ = cost_difference_boundary;
         max_interation_ = max_interation;
         number_of_particle_ = number_of_particle;
+        current_vehicle_speed_ = current_speed;
     }
 
     std::vector<float> VelocityPlanner::planVelocity(const std::vector<Waypoint> &local_path)
@@ -168,6 +169,19 @@ namespace adaptive_open_local_planner
             limit_pair.first = min_linear_velocity_;
 
             linear_velocity_boundary_.emplace_back(limit_pair);
+            // check if this is the first point
+            if (i == 0)
+            {
+                // make the value is current vehicle speed
+
+                limit_pair.second = current_vehicle_speed_;
+
+                // DLOG(INFO) << "max linear velocity is " << limit_pair.second;
+                limit_pair.first = current_vehicle_speed_;
+
+                linear_velocity_boundary_.emplace_back(limit_pair);
+            }
+
             // check if this is the last divided path
             if (i == (divided_path.size() - 1))
             {

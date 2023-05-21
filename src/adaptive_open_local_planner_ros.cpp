@@ -60,7 +60,7 @@ namespace adaptive_open_local_planner
             }
 
             // DLOG(INFO) << "max linear velocity is " << params_.max_linear_velocity;
-            velocity_planner_ptr_.reset(new VelocityPlanner(params_.path_divide_factor, params_.max_linear_velocity, params_.min_linear_velocity, params_.max_angular_acceleration, params_.min_angular_acceleration, params_.weighting, params_.personal_learning_rate, params_.global_learning_rate, params_.cost_difference_boundary, params_.max_interation, params_.number_of_particle));
+            velocity_planner_ptr_.reset(new VelocityPlanner(params_.path_divide_factor,current_state_in_map_frame_.speed, params_.max_linear_velocity, params_.min_linear_velocity, params_.max_angular_acceleration, params_.min_angular_acceleration, params_.weighting, params_.personal_learning_rate, params_.global_learning_rate, params_.cost_difference_boundary, params_.max_interation, params_.number_of_particle));
 
             // Subscribe & Advertise
             odom_sub = nh.subscribe(params_.odom_topic, 1, &AdaptiveOpenLocalPlannerROS::odomCallback, this);
@@ -209,6 +209,7 @@ namespace adaptive_open_local_planner
         vehicle_state_received_ = true;
         // DLOG(INFO) << "odom received.";
         current_state_in_map_frame_.speed = odom_msg->twist.twist.linear.x;
+        DLOG(INFO) << "current vehicle speed is " << current_state_in_map_frame_.speed;
         if (fabs(odom_msg->twist.twist.linear.x) > 0.25)
             current_state_in_map_frame_.steer = atan(params_.wheelbase_length * odom_msg->twist.twist.angular.z / odom_msg->twist.twist.linear.x);
 

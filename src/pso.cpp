@@ -146,7 +146,13 @@ namespace adaptive_open_local_planner
 
     float PSO::randomFloatNumber(const float &lower_limit, const float &upper_limit)
     {
+        if (std::abs(lower_limit - upper_limit) < 1e-2)
+        {
+            return lower_limit;
+        }
+
         float r1 = static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
+
         return r1 * (upper_limit - lower_limit);
     }
 
