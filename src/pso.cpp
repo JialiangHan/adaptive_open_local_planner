@@ -3,12 +3,12 @@
 namespace adaptive_open_local_planner
 {
 
-    PSO::PSO(const std::vector<std::vector<Waypoint>> &divided_path, const std::vector<std::pair<float, float>> &linear_velocity_boundary, const float &weighting, const float &personal_learning_rate, const float &global_learning_rate, const float &cost_difference_boundary, const int &max_interation, const int &number_of_particle)
+    PSO::PSO(const std::vector<std::vector<Waypoint>> &divided_path, const std::vector<std::pair<float, float>> &linear_velocity_boundary, const float &min_acceleration, const float &max_acceleration, const float &weighting, const float &personal_learning_rate, const float &global_learning_rate, const float &cost_difference_boundary, const int &max_interation, const int &number_of_particle)
     {
-        initialize(divided_path, linear_velocity_boundary, weighting, personal_learning_rate, global_learning_rate, cost_difference_boundary, max_interation, number_of_particle);
+        initialize(divided_path, linear_velocity_boundary, min_acceleration, max_acceleration, weighting, personal_learning_rate, global_learning_rate, cost_difference_boundary, max_interation, number_of_particle);
     }
 
-    bool PSO::initialize(const std::vector<std::vector<Waypoint>> &divided_path, const std::vector<std::pair<float, float>> &linear_velocity_boundary, const float &weighting, const float &personal_learning_rate, const float &global_learning_rate, const float &cost_difference_boundary, const int &max_interation, const int &number_of_particle)
+    bool PSO::initialize(const std::vector<std::vector<Waypoint>> &divided_path, const std::vector<std::pair<float, float>> &linear_velocity_boundary, const float &min_acceleration, const float &max_acceleration, const float &weighting, const float &personal_learning_rate, const float &global_learning_rate, const float &cost_difference_boundary, const int &max_interation, const int &number_of_particle)
     {
         // DLOG(INFO) << "size of divided_path is " << divided_path.size();
         divided_path_ = divided_path;
@@ -24,6 +24,9 @@ namespace adaptive_open_local_planner
         max_interation_ = max_interation;
 
         number_of_particle_ = number_of_particle;
+
+        min_acceleration_ = min_acceleration;
+        max_acceleration_ = max_acceleration;
 
         setConstraint(linear_velocity_boundary);
         initializeSwarm();
@@ -179,6 +182,7 @@ namespace adaptive_open_local_planner
                 cost = cost + 100000;
             }
         }
+        cost = cost + evaluateFitnessFunctionConstraints(particle);
         return cost;
     }
 
@@ -187,4 +191,82 @@ namespace adaptive_open_local_planner
         return global_best_.position_vec;
     }
 
+    float PSO::evaluateFitnessFunctionConstraints(const Particle &particle)
+    {
+        float final_cost, velocity_portion, acceleration_portion;
+        // set a large constant
+        int weight = 1000000;
+        // 1. handle velocity constraints
+        velocity_portion = handleVelocityConstraintsForFitnessFunction(particle);
+        // 2. handle acceleration constraints
+        acceleration_portion = handleAccelerationConstraintsForFitnessFunction(particle);
+
+        final_cost = weight * velocity_portion + weight * acceleration_portion;
+        return final_cost;
+    }
+
+    float PSO::handleAccelerationConstraintsForFitnessFunction(const Particle &particle)
+    {
+        float total_cost = 0;
+        std::vector<float> acceleration_vec = findAcceleration(particle);
+        for (const auto &acceleration : acceleration_vec)
+        {
+            // lower limit
+            total_cost = total_cost + std::min(acceleration - min_acceleration_, (float)0);
+            // upper limit
+            total_cost = total_cost + std::max(acceleration - max_acceleration_, (float)0);
+        }
+
+        return total_cost;
+    }
+
+    std::vector<float> PSO::findAcceleration(const Particle &particle)
+    {
+        std::vector<float> acceleration_vec;
+        // acceleration=velocity / time, velocity should use average velocity, time = distance / average velocity
+        float distance, avg_velocity, time, acceleration;
+        for (size_t i = 0; i < divided_path_.size(); i++)
+        {
+            // 1. find distance
+            distance = PlannerHelpers::getDistance(divided_path_[i]);
+            // 2. find average velocity
+            avg_velocity = (particle.position_vec[i] + particle.position_vec[i + 1]) / 2;
+            // 3. get time
+            if (avg_velocity != 0)
+            {
+                time = distance / avg_velocity;
+            }
+            else
+            {
+                time = 100000000;
+                DLOG(WARNING) << "average velocity is zero!!!";
+            }
+            if (time != 0)
+            {
+                acceleration = (particle.position_vec[i + 1] - particle.position_vec[i]) / time;
+            }
+            else
+            {
+                acceleration = 100000000;
+                DLOG(WARNING) << "time is zero!!!";
+            }
+            acceleration_vec.emplace_back(acceleration);
+        }
+        return acceleration_vec;
+    }
+
+    float PSO::handleVelocityConstraintsForFitnessFunction(const Particle &particle)
+    {
+        float total_cost = 0;
+
+        for (int i = 0; i < particle.position_vec.size(); i++)
+        {
+            // lower limit
+            total_cost = total_cost + std::min(particle.position_vec[i] - linear_velocity_boundary_[i].first, (float)0);
+            // upper limit
+            total_cost = total_cost + std::max(particle.position_vec[i] - linear_velocity_boundary_[i].second, (float)0);
+        }
+
+        return total_cost;
+    }
 }

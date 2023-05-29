@@ -3,7 +3,7 @@
 namespace adaptive_open_local_planner
 {
 
-    VelocityPlanner::VelocityPlanner(const float &path_divide_factor, const float &current_speed, const float &max_linear_velocity, const float &min_linear_velocity, const float &max_angular_acceleration, const float &min_angular_acceleration, const float &weighting, const float &personal_learning_rate, const float &global_learning_rate, const float &cost_difference_boundary, const int &max_interation, const int &number_of_particle)
+    VelocityPlanner::VelocityPlanner(const float &path_divide_factor, const float &current_speed, const float &max_linear_velocity, const float &min_linear_velocity, const float &max_angular_acceleration, const float &min_angular_acceleration, const float &max_linear_acceleration, const float &min_linear_acceleration, const float &weighting, const float &personal_learning_rate, const float &global_learning_rate, const float &cost_difference_boundary, const int &max_interation, const int &number_of_particle)
     {
         path_divide_factor_ = path_divide_factor;
         max_linear_velocity_ = max_linear_velocity;
@@ -17,6 +17,8 @@ namespace adaptive_open_local_planner
         max_interation_ = max_interation;
         number_of_particle_ = number_of_particle;
         current_vehicle_speed_ = current_speed;
+        max_linear_acceleration_ = max_linear_acceleration;
+        min_linear_acceleration_ = min_linear_acceleration;
     }
 
     std::vector<float> VelocityPlanner::planVelocity(const std::vector<Waypoint> &local_path)
@@ -24,13 +26,14 @@ namespace adaptive_open_local_planner
         std::vector<std::vector<Waypoint>> divided_path;
         dividePath(local_path, divided_path);
         findVelocityBoundary(divided_path);
-        pso_ptr_.reset(new PSO(divided_path, linear_velocity_boundary_, weighting_, personal_learning_rate_, global_learning_rate_, cost_difference_boundary_, max_interation_, number_of_particle_));
+        pso_ptr_.reset(new PSO(divided_path, linear_velocity_boundary_, max_linear_acceleration_, min_linear_acceleration_, weighting_, personal_learning_rate_, global_learning_rate_, cost_difference_boundary_, max_interation_, number_of_particle_));
         return pso_ptr_->evaluate();
     }
 
     void VelocityPlanner::dividePath(const std::vector<Waypoint> &local_path, std::vector<std::vector<Waypoint>> &divided_path)
     {
-        // DLOG(INFO) << "in dividePath.";
+        // DLOG(INFO) << "in dividePath. size of local path is " << local_path.size();
+        // DLOG(INFO) << "path divide factor is " << path_divide_factor_;
         //   find delta curvature of total local path
         float delta_curvature_global = findDeltaCurvature(local_path);
         for (uint i = 0; i < local_path.size(); i++)
@@ -55,7 +58,7 @@ namespace adaptive_open_local_planner
                 }
 
                 // if path_divide_factor is one, means no divided path
-                if (j == (local_path.size() - 1))
+                if (j == (local_path.size() - 1) && divided_path.size() == 0)
                 {
                     DLOG(INFO) << "no path divided";
                     divided_path.emplace_back(local_path);
@@ -64,7 +67,7 @@ namespace adaptive_open_local_planner
                 }
             }
         }
-        // DLOG(INFO) << "divided_path size is " << divided_path.size();
+        DLOG(INFO) << "divided_path size is " << divided_path.size();
         DLOG_IF(FATAL, divided_path.size() == 0) << "something wrong, divided path size is zero!!!";
     }
 
@@ -144,11 +147,26 @@ namespace adaptive_open_local_planner
         for (size_t i = 0; i < divided_path.size(); i++)
         {
             // calculate speed limit for first point of every divided path, and for last one, calculate first and last point
+            // check if this is the first point
+            if (i == 0)
+            {
+                // make the value is current vehicle speed
+
+                limit_pair.second = current_vehicle_speed_;
+
+                DLOG(INFO) << "max linear velocity is " << limit_pair.second;
+                limit_pair.first = current_vehicle_speed_;
+
+                linear_velocity_boundary_.emplace_back(limit_pair);
+                continue;
+            }
             //  calculate speed limit
             current_curvature = PlannerHelpers::CalculateCurvature(divided_path[i][0], divided_path[i][1]);
             if (current_curvature != 0)
             {
-                upper_limit = std::sqrt(max_angular_acceleration_ / current_curvature);
+                // DLOG_IF(FATAL, current_curvature < 0) << "current_curvature is smaller than zero!!";
+                upper_limit = std::sqrt(max_angular_acceleration_ / std::abs(current_curvature));
+                DLOG_IF(INFO, std::isnan(upper_limit)) << "upper limit calculated is " << upper_limit << " max_angular_acceleration_ is " << max_angular_acceleration_ << " current_curvature is " << current_curvature;
             }
             else
             {
@@ -169,18 +187,6 @@ namespace adaptive_open_local_planner
             limit_pair.first = min_linear_velocity_;
 
             linear_velocity_boundary_.emplace_back(limit_pair);
-            // check if this is the first point
-            if (i == 0)
-            {
-                // make the value is current vehicle speed
-
-                limit_pair.second = current_vehicle_speed_;
-
-                // DLOG(INFO) << "max linear velocity is " << limit_pair.second;
-                limit_pair.first = current_vehicle_speed_;
-
-                linear_velocity_boundary_.emplace_back(limit_pair);
-            }
 
             // check if this is the last divided path
             if (i == (divided_path.size() - 1))
@@ -212,6 +218,10 @@ namespace adaptive_open_local_planner
                 linear_velocity_boundary_.emplace_back(limit_pair);
             }
         }
-        // DLOG(INFO) << "linear_velocity_boundary_ size is " << linear_velocity_boundary_.size();
+        DLOG(INFO) << "linear_velocity_boundary_ size is " << linear_velocity_boundary_.size();
+        for (const auto &element : linear_velocity_boundary_)
+        {
+            DLOG(INFO) << "velocity boundary are " << element.first << " " << element.second;
+        }
     }
 }

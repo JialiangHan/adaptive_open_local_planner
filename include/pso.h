@@ -3,13 +3,14 @@
 #include "gflags/gflags.h"
 #include "struct_defs.h"
 #include "planner_helpers.h"
+#include <algorithm>
 namespace adaptive_open_local_planner
 {
     class PSO
     {
     public:
         PSO(){};
-        PSO(const std::vector<std::vector<Waypoint>> &divided_path, const std::vector<std::pair<float, float>> &linear_velocity_boundary, const float &weighting, const float &personal_learning_rate, const float &global_learning_rate, const float &cost_difference_boundary, const int &max_interation, const int &number_of_particle);
+        PSO(const std::vector<std::vector<Waypoint>> &divided_path, const std::vector<std::pair<float, float>> &linear_velocity_boundary, const float &min_acceleration, const float &max_acceleration, const float &weighting, const float &personal_learning_rate, const float &global_learning_rate, const float &cost_difference_boundary, const int &max_interation, const int &number_of_particle);
 
         /**
          * @brief main loop
@@ -37,13 +38,24 @@ namespace adaptive_open_local_planner
         typedef std::vector<Particle> Swarm;
 
     private:
-        bool initialize(const std::vector<std::vector<Waypoint>> &divided_path, const std::vector<std::pair<float, float>> &linear_velocity_boundary, const float &weighting, const float &personal_learning_rate, const float &global_learning_rate, const float &cost_difference_boundary, const int &max_interation, const int &number_of_particle);
+        bool initialize(const std::vector<std::vector<Waypoint>> &divided_path, const std::vector<std::pair<float, float>> &linear_velocity_boundary, const float &min_acceleration, const float &max_acceleration, const float &weighting, const float &personal_learning_rate, const float &global_learning_rate, const float &cost_difference_boundary, const int &max_interation, const int &number_of_particle);
 
         void setConstraint(const std::vector<std::pair<float, float>> &linear_velocity_boundary);
 
         void initializeSwarm();
 
         float evaluateFitnessFunction(const Particle &particle);
+        /**
+         * @brief evaluate term of constraints in fitness function velocity and acceleration
+         *
+         * @param particle
+         * @return float
+         */
+        float evaluateFitnessFunctionConstraints(const Particle &particle);
+
+        float handleVelocityConstraintsForFitnessFunction(const Particle &particle);
+
+        float handleAccelerationConstraintsForFitnessFunction(const Particle &particle);
 
         void updateParticle(Particle &particle);
 
@@ -54,6 +66,8 @@ namespace adaptive_open_local_planner
         float randomFloatNumber(const float &lower_limit, const float &upper_limit);
 
         std::vector<float> convertGlobalBestToVelocityVec();
+
+        std::vector<float> findAcceleration(const Particle &particle);
 
     private:
         std::vector<std::vector<Waypoint>> divided_path_;
@@ -71,6 +85,10 @@ namespace adaptive_open_local_planner
         int number_of_particle_;
 
         std::vector<std::pair<float, float>> linear_velocity_boundary_;
+
+        float max_acceleration_;
+
+        float min_acceleration_;
 
         std::vector<Particle> particle_swarm_;
 

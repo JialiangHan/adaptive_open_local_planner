@@ -805,7 +805,7 @@ namespace adaptive_open_local_planner
         float delta_angle = current.heading - pre.heading;
 
         curvature = (delta_angle) / delta_distance;
-        // LOG_IF(INFO, curvature > 1000) << "current is: " << current(0, 0) << " y is: " << current.y() << " succ x is :" << succ(0, 0) << " y is: " << succ.y() << " pre x is :" << pre(0, 0) << " y is: " << pre.y() << " pre_vector x is :" << pre_vector(0, 0) << " y is: " << pre_vector.y() << " succ_vector x is :" << succ_vector(0, 0) << "y is: " << succ_vector.y() << " delta_distance is:" << delta_distance << " pre_vector_length is: " << pre_vector_length << " delta_angle is: " << delta_angle << " curvature is " << curvature;
+        DLOG_IF(INFO, std::isnan(curvature)) << "curvature is NAN. delta angle is " << delta_angle << " delta distance is " << delta_distance;
         return curvature;
     }
 
@@ -839,6 +839,7 @@ namespace adaptive_open_local_planner
         float distance = 0;
         distance = std::sqrt((prev.x - current.x) * (prev.x - current.x) + (prev.y - current.y) * (prev.y - current.y));
         // DLOG(INFO) << "end of getDistance";
+        DLOG_IF(INFO, std::isnan(distance)) << "distance is NAN. previous point is " << prev.x << " " << prev.y << " current point is " << current.x << " " << current.y;
         return distance;
     }
 

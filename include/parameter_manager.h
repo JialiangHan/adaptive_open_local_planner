@@ -90,6 +90,8 @@ namespace adaptive_open_local_planner
     float min_linear_velocity;
     float max_angular_acceleration;
     float min_angular_acceleration;
+    float max_linear_acceleration;
+    float min_linear_acceleration;
     // factor to control how much sub path you want to divide, it is K in the paper, should be larger than zero, smaller than one.
     float path_divide_factor;
     int number_of_particle;
@@ -172,6 +174,8 @@ namespace adaptive_open_local_planner
       min_linear_velocity = 0;
       max_angular_acceleration = 10;
       min_angular_acceleration = -10;
+      max_linear_acceleration = 4;
+      min_linear_acceleration = -4;
 
       path_divide_factor = 0.3;
 

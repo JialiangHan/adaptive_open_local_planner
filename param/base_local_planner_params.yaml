@@ -77,5 +77,7 @@ AdaptiveOpenLocalPlannerROS:
   min_linear_velocity: 0
   max_angular_acceleration: 10
   min_angular_acceleration: -10
+  max_linear_acceleration: 5
+  min_linear_acceleration: -5
 
   path_divide_factor: 0.4

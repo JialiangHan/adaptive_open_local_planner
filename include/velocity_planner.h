@@ -18,7 +18,7 @@ namespace adaptive_open_local_planner
     public:
         VelocityPlanner(){};
 
-        VelocityPlanner(const float &path_divide_factor, const float &current_speed, const float &max_linear_velocity, const float &min_linear_velocity, const float &max_angular_acceleration, const float &min_angular_acceleration, const float &weighting, const float &personal_learning_rate, const float &global_learning_rate, const float &cost_difference_boundary, const int &max_interation, const int &number_of_particle);
+        VelocityPlanner(const float &path_divide_factor, const float &current_speed, const float &max_linear_velocity, const float &min_linear_velocity, const float &max_angular_acceleration, const float &min_angular_acceleration, const float &max_linear_acceleration, const float &min_linear_acceleration, const float &weighting, const float &personal_learning_rate, const float &global_learning_rate, const float &cost_difference_boundary, const int &max_interation, const int &number_of_particle);
 
         std::vector<float> planVelocity(const std::vector<Waypoint> &local_path);
 
@@ -79,6 +79,10 @@ namespace adaptive_open_local_planner
         float min_angular_acceleration_;
 
         float current_vehicle_speed_;
+
+        float max_linear_acceleration_;
+
+        float min_linear_acceleration_;
 
         // vector of linear velocity boundary, first is min,second is max.
         std::vector<std::pair<float, float>> linear_velocity_boundary_;
