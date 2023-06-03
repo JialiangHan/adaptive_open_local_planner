@@ -18,9 +18,9 @@ namespace adaptive_open_local_planner
     public:
         VelocityPlanner(){};
 
-        VelocityPlanner(const float &path_divide_factor, const float &current_speed, const float &max_linear_velocity, const float &min_linear_velocity, const float &max_angular_acceleration, const float &min_angular_acceleration, const float &max_linear_acceleration, const float &min_linear_acceleration, const float &weighting, const float &personal_learning_rate, const float &global_learning_rate, const float &cost_difference_boundary, const int &max_interation, const int &number_of_particle);
+        VelocityPlanner(const float &path_divide_factor,  const float &max_linear_velocity, const float &min_linear_velocity, const float &max_angular_acceleration, const float &min_angular_acceleration, const float &max_linear_acceleration, const float &min_linear_acceleration, const float &weighting, const float &personal_learning_rate, const float &global_learning_rate, const float &cost_difference_boundary, const int &max_interation, const int &number_of_particle);
 
-        std::vector<float> planVelocity(const std::vector<Waypoint> &local_path);
+        std::vector<float> planVelocity(const std::vector<Waypoint> &local_path,const float &current_speed);
 
     private:
         /**

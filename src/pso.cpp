@@ -30,7 +30,7 @@ namespace adaptive_open_local_planner
 
         setConstraint(linear_velocity_boundary);
         initializeSwarm();
-        DLOG(INFO) << "PSO initialize success!";
+        // DLOG(INFO) << "PSO initialize success!";
         return true;
     }
 
@@ -45,6 +45,7 @@ namespace adaptive_open_local_planner
             // end condition
             if (std::abs(global_best_.cost - prev_global_best_.cost) <= cost_difference_boundary_)
             {
+                DLOG(INFO) << "current global best cost is " << global_best_.cost << " previous global best cost is " << prev_global_best_.cost << " difference is smaller than preset value: " << cost_difference_boundary_;
                 break;
             }
         }
@@ -64,10 +65,12 @@ namespace adaptive_open_local_planner
 
         for (uint index = 0; index < particle.velocity_vec.size(); index++)
         {
+            DLOG(INFO) << "current velocity(PSO) is " << particle.velocity_vec[index] << " current position is " << particle.position_vec[index];
             // first update velocity
             particle.velocity_vec[index] = weighting_ * particle.velocity_vec[index] + personal_learning_rate_ * r1 * (particle.personal_best.position_vec[index] - particle.position_vec[index]) + global_learning_rate_ * r2 * (global_best_.position_vec[index] - particle.position_vec[index]);
             // second update location
             particle.position_vec[index] = particle.position_vec[index] + particle.velocity_vec[index];
+            DLOG(INFO) << "after update: current velocity(PSO) is " << particle.velocity_vec[index] << " current position is " << particle.position_vec[index];
         }
         // 3. update cost
         particle.cost = evaluateFitnessFunction(particle);
@@ -92,14 +95,16 @@ namespace adaptive_open_local_planner
             updateParticle(particle);
         }
     }
-
+    // checked OK
     void PSO::updateGlobalBest()
     {
+        // DLOG(INFO) << "In updateGlobalBest:";
         // reset global best to first particle
         if (particle_swarm_.size() >= 1)
         {
             global_best_ = particle_swarm_[0];
             prev_global_best_ = particle_swarm_[0];
+            // DLOG(INFO) << "reset global best and previous global best to first one, cost is " << particle_swarm_[0].cost;
         }
         else
         {
@@ -108,8 +113,10 @@ namespace adaptive_open_local_planner
 
         for (const auto &particle : particle_swarm_)
         {
+            // DLOG(INFO) << "cost is " << particle.cost;
             if (global_best_.cost > particle.cost)
             {
+                // DLOG(INFO) << "set global best cost is " << particle.cost << " previous global best cost is " << global_best_.cost;
                 prev_global_best_ = global_best_;
                 global_best_ = particle;
             }
@@ -131,11 +138,12 @@ namespace adaptive_open_local_planner
             // DLOG(INFO) << "size of linear_velocity_boundary_ is " << linear_velocity_boundary_.size();
             for (size_t i = 0; i < linear_velocity_boundary_.size(); i++)
             {
-                // DLOG(INFO) << "index is " << i;
+
                 // initialize position which is vehicle speed
                 initial_position = randomFloatNumber(linear_velocity_boundary_[i].first, linear_velocity_boundary_[i].second);
                 particle.position_vec.emplace_back(initial_position);
                 particle.velocity_vec.emplace_back(0);
+                // DLOG(INFO) << "index is " << i << " initial position is " << initial_position << " initial speed is " << 0;
             }
             particle.cost = evaluateFitnessFunction(particle);
             particle.personal_best.position_vec = particle.position_vec;
@@ -164,10 +172,11 @@ namespace adaptive_open_local_planner
         // DLOG(INFO) << "in evaluateFitnessFunction";
         float distance, cost = 0;
         // DLOG(INFO) << "size of particle.position_vec is " << particle.position_vec.size();
+        // DLOG(INFO) << "size of divided_path_ is " << divided_path_.size();
         for (size_t i = 0; i < particle.position_vec.size() - 1; i++)
         {
             // DLOG(INFO) << "current index is " << i;
-            // DLOG(INFO) << "size of divided_path_ is " << divided_path_.size();
+
             // set distance
             DLOG_IF(FATAL, particle.position_vec.size() != (divided_path_.size() + 1)) << "velocity vec size is not equal to (divided path size +1)";
             distance = PlannerHelpers::getDistance(divided_path_[i]);
@@ -182,7 +191,9 @@ namespace adaptive_open_local_planner
                 cost = cost + 100000;
             }
         }
+        // DLOG(INFO) << "cost is " << cost;
         cost = cost + evaluateFitnessFunctionConstraints(particle);
+        // DLOG(INFO) << "cost is " << cost;
         return cost;
     }
 
@@ -193,14 +204,14 @@ namespace adaptive_open_local_planner
 
     float PSO::evaluateFitnessFunctionConstraints(const Particle &particle)
     {
-        float final_cost, velocity_portion, acceleration_portion;
+        float final_cost = 0, velocity_portion, acceleration_portion;
         // set a large constant
         int weight = 1000000;
         // 1. handle velocity constraints
         velocity_portion = handleVelocityConstraintsForFitnessFunction(particle);
         // 2. handle acceleration constraints
         acceleration_portion = handleAccelerationConstraintsForFitnessFunction(particle);
-
+        // DLOG(INFO) << "velocity_portion is " << velocity_portion << " acceleration_portion is " << acceleration_portion;
         final_cost = weight * velocity_portion + weight * acceleration_portion;
         return final_cost;
     }
@@ -211,10 +222,14 @@ namespace adaptive_open_local_planner
         std::vector<float> acceleration_vec = findAcceleration(particle);
         for (const auto &acceleration : acceleration_vec)
         {
+            // DLOG(INFO) << "total cost is " << total_cost;
+            // DLOG(INFO) << "acceleration is " << acceleration << " min_acceleration_ is " << min_acceleration_ << " max_acceleration_ is " << max_acceleration_;
             // lower limit
-            total_cost = total_cost + std::min(acceleration - min_acceleration_, (float)0);
+            total_cost = total_cost + std::abs(std::min(acceleration - min_acceleration_, (float)0));
+            // DLOG(INFO) << "total cost is " << total_cost;
             // upper limit
             total_cost = total_cost + std::max(acceleration - max_acceleration_, (float)0);
+            // DLOG(INFO) << "total cost is " << total_cost;
         }
 
         return total_cost;
