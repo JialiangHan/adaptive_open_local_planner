@@ -45,11 +45,16 @@ namespace adaptive_open_local_planner
             // end condition
             if (std::abs(global_best_.cost - prev_global_best_.cost) <= cost_difference_boundary_)
             {
-                DLOG(INFO) << "current global best cost is " << global_best_.cost << " previous global best cost is " << prev_global_best_.cost << " difference is smaller than preset value: " << cost_difference_boundary_;
+                DLOG(INFO) << "current global best cost is " << global_best_.cost << " previous global best cost is " << prev_global_best_.cost << " difference is smaller than preset value: " << cost_difference_boundary_ << " current iteration number is " << iter;
                 break;
             }
         }
+        // DLOG(INFO) << "current global best cost is " << global_best_.cost << " previous global best cost is " << prev_global_best_.cost << " difference is smaller than preset value: " << cost_difference_boundary_;
         linear_velocity_vec = convertGlobalBestToVelocityVec();
+        for (int index = 0; index < linear_velocity_vec.size(); index++)
+        {
+            DLOG(INFO) << "velocity is " << linear_velocity_vec[index] << " upper velocity boundary is " << linear_velocity_boundary_[index].second << " diff is " << linear_velocity_boundary_[index].second - linear_velocity_vec[index];
+        }
         return linear_velocity_vec;
     }
 
@@ -65,12 +70,12 @@ namespace adaptive_open_local_planner
 
         for (uint index = 0; index < particle.velocity_vec.size(); index++)
         {
-            DLOG(INFO) << "current velocity(PSO) is " << particle.velocity_vec[index] << " current position is " << particle.position_vec[index];
+            // DLOG(INFO) << "current velocity(PSO) is " << particle.velocity_vec[index] << " current position is " << particle.position_vec[index];
             // first update velocity
             particle.velocity_vec[index] = weighting_ * particle.velocity_vec[index] + personal_learning_rate_ * r1 * (particle.personal_best.position_vec[index] - particle.position_vec[index]) + global_learning_rate_ * r2 * (global_best_.position_vec[index] - particle.position_vec[index]);
             // second update location
             particle.position_vec[index] = particle.position_vec[index] + particle.velocity_vec[index];
-            DLOG(INFO) << "after update: current velocity(PSO) is " << particle.velocity_vec[index] << " current position is " << particle.position_vec[index];
+            // DLOG(INFO) << "after update: current velocity(PSO) is " << particle.velocity_vec[index] << " current position is " << particle.position_vec[index];
         }
         // 3. update cost
         particle.cost = evaluateFitnessFunction(particle);
@@ -79,6 +84,32 @@ namespace adaptive_open_local_planner
         {
             particle.personal_best.position_vec = particle.position_vec;
             particle.personal_best.cost = particle.cost;
+        }
+    }
+
+    void PSO::updateParticleToVelocityBoundary(Particle &particle)
+    {
+        // create a new particle, compare their cost, if this cost is lower, than replace it. else do nothing
+        Particle new_particle = particle;
+        float r1 = static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
+
+        for (uint index = 0; index < new_particle.position_vec.size(); index++)
+        {
+            // DLOG(INFO) << "current velocity(PSO) is " << particle.velocity_vec[index] << " current position is " << particle.position_vec[index];
+
+            new_particle.position_vec[index] = new_particle.position_vec[index] + r1 * (linear_velocity_boundary_[index].second - new_particle.position_vec[index]);
+            // DLOG(INFO) << "after update: current velocity(PSO) is " << particle.velocity_vec[index] << " current position is " << particle.position_vec[index];
+        }
+        // update cost
+        new_particle.cost = evaluateFitnessFunction(new_particle);
+        if (new_particle.cost < particle.cost)
+        {
+            particle = new_particle;
+            if (particle.cost < particle.personal_best.cost)
+            {
+                particle.personal_best.position_vec = particle.position_vec;
+                particle.personal_best.cost = particle.cost;
+            }
         }
     }
 
@@ -93,6 +124,7 @@ namespace adaptive_open_local_planner
         for (auto &particle : particle_swarm_)
         {
             updateParticle(particle);
+            updateParticleToVelocityBoundary(particle);
         }
     }
     // checked OK
@@ -141,6 +173,8 @@ namespace adaptive_open_local_planner
 
                 // initialize position which is vehicle speed
                 initial_position = randomFloatNumber(linear_velocity_boundary_[i].first, linear_velocity_boundary_[i].second);
+                // change initial position to max velocity
+                // initial_position = std::max(linear_velocity_boundary_[i].first, linear_velocity_boundary_[i].second);
                 particle.position_vec.emplace_back(initial_position);
                 particle.velocity_vec.emplace_back(0);
                 // DLOG(INFO) << "index is " << i << " initial position is " << initial_position << " initial speed is " << 0;

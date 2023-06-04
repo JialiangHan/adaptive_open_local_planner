@@ -731,10 +731,10 @@ namespace adaptive_open_local_planner
             // DLOG(INFO) << "closest_index is " << closest_index << " velocity is " << velocity;
         }
         DLOG(INFO) << "current vehicle speed is " << current_state_in_map_frame_.speed;
-        for (const auto velocity : velocity_vec)
-        {
-            DLOG(INFO) << "velocity is " << velocity;
-        }
+        // for (const auto velocity : velocity_vec)
+        // {
+        //     DLOG(INFO) << "velocity is " << velocity;
+        // }
 
         // velocity = best_path[closest_index].speed;
         steering_angle_rate = calculateAngleVelocity(best_path[closest_index], best_path[closest_index + 1]);

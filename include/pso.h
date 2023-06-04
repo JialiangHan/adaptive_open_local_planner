@@ -69,6 +69,8 @@ namespace adaptive_open_local_planner
 
         std::vector<float> findAcceleration(const Particle &particle);
 
+        void updateParticleToVelocityBoundary(Particle &particle);
+
     private:
         std::vector<std::vector<Waypoint>> divided_path_;
 

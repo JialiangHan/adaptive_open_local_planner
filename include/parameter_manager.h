@@ -164,10 +164,10 @@ namespace adaptive_open_local_planner
       evaluate_path = true;
 
       // PSO parameter
-      weighting = 0.1;
+      weighting = 0.5;
       personal_learning_rate = 0.1;
       global_learning_rate = 0.1;
-      cost_difference_boundary = 1;
+      cost_difference_boundary = 0.000001;
       max_interation = 10000;
       // speed limit
       max_linear_velocity = 1;
@@ -177,9 +177,9 @@ namespace adaptive_open_local_planner
       max_linear_acceleration = 4;
       min_linear_acceleration = -4;
 
-      path_divide_factor = 0.3;
+      path_divide_factor = 0.5;
 
-      number_of_particle = 100;
+      number_of_particle = 1000;
     }
 
     /**
