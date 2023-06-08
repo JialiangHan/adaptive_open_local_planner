@@ -53,10 +53,11 @@ namespace adaptive_open_local_planner
             // DLOG(INFO) << "evaluate_path is " << params_.evaluate_path;
             if (params_.evaluate_path)
             {
-                std::string path_topic, cmd_topic;
+                std::string path_topic, cmd_topic, jerk_topic;
                 path_topic = "extracted_path_rviz";
                 cmd_topic = "cmd_vel";
-                path_evaluator_ptr_.reset(new PathEvaluator(path_topic, cmd_topic));
+                jerk_topic = "jerk";
+                path_evaluator_ptr_.reset(new PathEvaluator(path_topic, cmd_topic, jerk_topic));
             }
 
             // DLOG(INFO) << "max linear velocity is " << params_.max_linear_velocity;

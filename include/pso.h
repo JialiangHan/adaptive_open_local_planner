@@ -4,6 +4,9 @@
 #include "struct_defs.h"
 #include "planner_helpers.h"
 #include <algorithm>
+#include <ros/ros.h>
+#include <ros/console.h>
+#include <std_msgs/Float32.h>
 namespace adaptive_open_local_planner
 {
     class PSO
@@ -69,7 +72,11 @@ namespace adaptive_open_local_planner
 
         std::vector<float> findAcceleration(const Particle &particle);
 
+        std::vector<float> findJerk(const Particle &particle);
+
         void updateParticleToVelocityBoundary(Particle &particle);
+
+        void publishJerk();
 
     private:
         std::vector<std::vector<Waypoint>> divided_path_;
@@ -97,5 +104,9 @@ namespace adaptive_open_local_planner
         Particle global_best_;
 
         Particle prev_global_best_;
+
+        ros::NodeHandle nh_;
+
+        ros::Publisher jerk_pub_;
     };
 };

@@ -55,6 +55,7 @@ namespace adaptive_open_local_planner
         {
             DLOG(INFO) << "velocity is " << linear_velocity_vec[index] << " upper velocity boundary is " << linear_velocity_boundary_[index].second << " diff is " << linear_velocity_boundary_[index].second - linear_velocity_vec[index];
         }
+        publishJerk();
         return linear_velocity_vec;
     }
 
@@ -86,7 +87,7 @@ namespace adaptive_open_local_planner
             particle.personal_best.cost = particle.cost;
         }
     }
-
+    // this function might be changed due to cost function is changed.
     void PSO::updateParticleToVelocityBoundary(Particle &particle)
     {
         // create a new particle, compare their cost, if this cost is lower, than replace it. else do nothing
@@ -203,6 +204,8 @@ namespace adaptive_open_local_planner
 
     float PSO::evaluateFitnessFunction(const Particle &particle)
     {
+        // original cost function is cost= distance/velocity.
+        // need to add jerk to it.
         // DLOG(INFO) << "in evaluateFitnessFunction";
         float distance, cost = 0;
         // DLOG(INFO) << "size of particle.position_vec is " << particle.position_vec.size();
@@ -304,6 +307,44 @@ namespace adaptive_open_local_planner
         return acceleration_vec;
     }
 
+    std::vector<float> PSO::findJerk(const Particle &particle)
+    {
+        std::vector<float> jerk_vec;
+        // acceleration=velocity / time, velocity should use average velocity, time = distance / average velocity
+        float distance, avg_velocity, time, acceleration, jerk;
+        for (size_t i = 0; i < divided_path_.size(); i++)
+        {
+            // 1. find distance
+            distance = PlannerHelpers::getDistance(divided_path_[i]);
+            // 2. find average velocity
+            avg_velocity = (particle.position_vec[i] + particle.position_vec[i + 1]) / 2;
+            // 3. get time
+            if (avg_velocity != 0)
+            {
+                time = distance / avg_velocity;
+            }
+            else
+            {
+                time = 100000000;
+                DLOG(WARNING) << "average velocity is zero!!!";
+            }
+            if (time != 0)
+            {
+                acceleration = (particle.position_vec[i + 1] - particle.position_vec[i]) / time;
+                jerk = acceleration / time;
+            }
+            else
+            {
+                acceleration = 100000000;
+                jerk = 10000000;
+                DLOG(WARNING) << "time is zero!!!";
+            }
+
+            jerk_vec.emplace_back(jerk);
+        }
+        return jerk_vec;
+    }
+
     float PSO::handleVelocityConstraintsForFitnessFunction(const Particle &particle)
     {
         float total_cost = 0;
@@ -317,5 +358,21 @@ namespace adaptive_open_local_planner
         }
 
         return total_cost;
+    }
+
+    void PSO::publishJerk()
+    {
+        std::vector<float> jerk_vec = findJerk(global_best_);
+        jerk_pub_ = nh_.advertise<std_msgs::Float32>("jerk", 1, true);
+        std_msgs::Float32 jerk;
+        if (jerk_vec.size() != 0)
+        {
+            jerk.data = jerk_vec[0];
+            jerk_pub_.publish(jerk);
+        }
+        else
+        {
+            DLOG(WARNING) << "size of jerk vec is zero!!!";
+        }
     }
 }

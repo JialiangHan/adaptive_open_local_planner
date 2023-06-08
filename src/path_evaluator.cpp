@@ -25,6 +25,11 @@ namespace adaptive_open_local_planner
         // DLOG(INFO) << "set speed";
     }
 
+    void PathEvaluator::CallbackJerk(const std_msgs::Float32::ConstPtr &jerk, const std::string &topic_name)
+    {
+        jerk_vec_.emplace_back(jerk->data);
+    }
+
     int PathEvaluator::CalculateCurvature()
     {
         if (path_.size() < 3)
@@ -91,10 +96,10 @@ namespace adaptive_open_local_planner
     {
         matplotlibcpp::ion();
         matplotlibcpp::clf();
-        std::vector<std::string> title_vec = {"curvature", "smoothness", "Angular velocity", "linear velocity"};
+        std::vector<std::string> title_vec = {"curvature", "smoothness", "Angular velocity", "linear velocity", "jerk"};
         for (size_t i = 0; i < title_vec.size(); i++)
         {
-            matplotlibcpp::subplot(2, 2, i + 1);
+            matplotlibcpp::subplot(2, 3, i + 1);
             std::vector<float> vec;
             if (title_vec[i] == "curvature")
             {
@@ -111,6 +116,10 @@ namespace adaptive_open_local_planner
             if (title_vec[i] == "linear velocity")
             {
                 vec = linear_velocity_vec_;
+            }
+            if (title_vec[i] == "jerk")
+            {
+                vec = jerk_vec_;
             }
 
             matplotlibcpp::plot(vec, {{"label", "raw path"}});
