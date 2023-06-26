@@ -10,9 +10,10 @@ namespace adaptive_open_local_planner
         double heading;
         double left_width;
         double right_width;
-        double speed;
-        double cost;
-        double time_cost;
+        double speed = 0;
+        double angular_speed = 0;
+        double cost = 0;
+        double time_cost = 0;
         bool operator==(const Waypoint &rhs) const
         {
             return (x == rhs.x) && (y == rhs.y) && (heading == rhs.heading); // or another approach as above

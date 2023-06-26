@@ -843,4 +843,15 @@ namespace adaptive_open_local_planner
         return distance;
     }
 
+    float PlannerHelpers::sumVector(const std::vector<float> &vector)
+    {
+        // DLOG(INFO) << "in sumVector";
+        float result = 0;
+        for (const auto &element : vector)
+        {
+            result = result + element;
+        }
+        // DLOG(INFO) << "out sumVector";
+        return result;
+    }
 }

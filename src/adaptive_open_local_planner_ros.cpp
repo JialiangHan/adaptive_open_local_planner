@@ -708,6 +708,7 @@ namespace adaptive_open_local_planner
 
     void AdaptiveOpenLocalPlannerROS::calculateVelocityAndSteeringAngleRate(const std::vector<Waypoint> &best_path, float &velocity, float &steering_angle_rate)
     {
+        std::vector<Waypoint> waypoint_vec;
         Waypoint car_pos;
         car_pos.x = current_state_in_map_frame_.x;
         car_pos.y = current_state_in_map_frame_.y;
@@ -720,25 +721,27 @@ namespace adaptive_open_local_planner
         DLOG_IF(FATAL, closest_index >= best_path.size()) << "FATAL: closest_index larger than best_path size!!!";
         // change to velocity planner
 
-        std::vector<float> velocity_vec = velocity_planner_ptr_->planVelocity(best_path, current_state_in_map_frame_.speed);
-        if ((closest_index + 1) < velocity_vec.size())
+        waypoint_vec = velocity_planner_ptr_->planVelocity(best_path, current_state_in_map_frame_.speed);
+        if ((closest_index + 1) < waypoint_vec.size())
         {
-            velocity = velocity_vec[closest_index + 1];
+            velocity = waypoint_vec[closest_index + 1].speed;
+            steering_angle_rate = waypoint_vec[closest_index].angular_speed;
             // DLOG(INFO) << "closest_index is " << closest_index << " velocity is " << velocity;
         }
         else
         {
-            velocity = velocity_vec[closest_index];
-            // DLOG(INFO) << "closest_index is " << closest_index << " velocity is " << velocity;
+            velocity = waypoint_vec[closest_index].speed;
+            steering_angle_rate = waypoint_vec[closest_index].angular_speed;
+            // DLOG(INFO) << "closest_index is " << closest_index <+++< " velocity is " << velocity;
         }
-        DLOG(INFO) << "current vehicle speed is " << current_state_in_map_frame_.speed;
+        // DLOG(INFO) << "current vehicle speed is " << current_state_in_map_frame_.speed;
         // for (const auto velocity : velocity_vec)
         // {
         //     DLOG(INFO) << "velocity is " << velocity;
         // }
 
         // velocity = best_path[closest_index].speed;
-        steering_angle_rate = calculateAngleVelocity(best_path[closest_index], best_path[closest_index + 1]);
+        // steering_angle_rate = calculateAngleVelocity(best_path[closest_index], best_path[closest_index + 1]);
     }
 
     void AdaptiveOpenLocalPlannerROS::goalCheck()
@@ -956,13 +959,13 @@ namespace adaptive_open_local_planner
         double angle_velocity = 0;
 
         // set dt to a constant value
-        float dt = 0.1, angle_diff;
+        float dt = 0.55, angle_diff;
         angle_diff = next_point.heading - current_point.heading;
         if (angle_diff > M_PI_2 || angle_diff < -M_PI_2)
         {
             DLOG(WARNING) << "angle diff larger than M_PI_2 or smaller than M_PI_2, angle diff is " << angle_diff;
         }
-
+        DLOG(INFO) << "next point heading is " << next_point.heading << " current point heading is " << current_point.heading;
         angle_velocity = angle_diff / dt;
         return angle_velocity;
     }

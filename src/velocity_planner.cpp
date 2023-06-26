@@ -20,7 +20,7 @@ namespace adaptive_open_local_planner
         min_linear_acceleration_ = min_linear_acceleration;
     }
 
-    std::vector<float> VelocityPlanner::planVelocity(const std::vector<Waypoint> &local_path, const float &current_speed)
+    std::vector<Waypoint> VelocityPlanner::planVelocity(const std::vector<Waypoint> &local_path, const float &current_speed)
     {
         current_vehicle_speed_ = current_speed;
         std::vector<std::vector<Waypoint>> divided_path;
@@ -32,6 +32,11 @@ namespace adaptive_open_local_planner
 
     void VelocityPlanner::dividePath(const std::vector<Waypoint> &local_path, std::vector<std::vector<Waypoint>> &divided_path)
     {
+        for (const auto &element : local_path)
+        {
+            DLOG_IF(INFO, std::isnan(element.x) || std::isnan(element.y)) << "waypoint is NAN. current point is " << element.x << " " << element.y;
+        }
+
         // DLOG(INFO) << "in dividePath. size of local path is " << local_path.size();
         // DLOG(INFO) << "path divide factor is " << path_divide_factor_;
         //   find delta curvature of total local path
@@ -68,6 +73,14 @@ namespace adaptive_open_local_planner
             }
         }
         // DLOG(INFO) << "divided_path size is " << divided_path.size();
+        // for (const auto &unit : divided_path)
+        // {
+        //     for (const auto &element : unit)
+        //     {
+        //         DLOG_IF(INFO, std::isnan(element.x) || std::isnan(element.y)) << "waypoint is NAN. current point is " << element.x << " " << element.y;
+        //     }
+        // }
+
         DLOG_IF(FATAL, divided_path.size() == 0) << "something wrong, divided path size is zero!!!";
     }
 
@@ -151,10 +164,8 @@ namespace adaptive_open_local_planner
             if (i == 0)
             {
                 // make the value is current vehicle speed
-
                 limit_pair.second = current_vehicle_speed_;
-
-                DLOG(INFO) << "max linear velocity is " << limit_pair.second;
+                // DLOG(INFO) << "max linear velocity is " << limit_pair.second;
                 limit_pair.first = current_vehicle_speed_;
 
                 linear_velocity_boundary_.emplace_back(limit_pair);

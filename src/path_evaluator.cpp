@@ -138,7 +138,7 @@ namespace adaptive_open_local_planner
 
     void PathEvaluator::EvaluatePath()
     {
-        DLOG(INFO) << "in EvaluatePath:";
+        // DLOG(INFO) << "in EvaluatePath:";
         CalculateCurvature();
         CalculateSmoothness();
         Plot();

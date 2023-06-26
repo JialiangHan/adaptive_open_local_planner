@@ -12,6 +12,13 @@ namespace adaptive_open_local_planner
     {
         // DLOG(INFO) << "size of divided_path is " << divided_path.size();
         divided_path_ = divided_path;
+        for (const auto &unit : divided_path_)
+        {
+            for (const auto &element : unit)
+            {
+                DLOG_IF(INFO, std::isnan(element.x) || std::isnan(element.y)) << "waypoint is NAN. current point is " << element.x << " " << element.y;
+            }
+        }
 
         weighting_ = weighting;
 
@@ -34,10 +41,11 @@ namespace adaptive_open_local_planner
         return true;
     }
 
-    std::vector<float> PSO::evaluate()
+    std::vector<Waypoint> PSO::evaluate()
     {
         std::vector<float> linear_velocity_vec;
-
+        std::vector<float> angular_velocity_vec;
+        std::vector<std::vector<float>> velocity_vec;
         for (size_t iter = 0; iter < max_interation_; iter++)
         {
             updateSwarm();
@@ -45,7 +53,7 @@ namespace adaptive_open_local_planner
             // end condition
             if (std::abs(global_best_.cost - prev_global_best_.cost) <= cost_difference_boundary_)
             {
-                DLOG(INFO) << "current global best cost is " << global_best_.cost << " previous global best cost is " << prev_global_best_.cost << " difference is smaller than preset value: " << cost_difference_boundary_ << " current iteration number is " << iter;
+                // DLOG(INFO) << "current global best cost is " << global_best_.cost << " previous global best cost is " << prev_global_best_.cost << " difference is smaller than preset value: " << cost_difference_boundary_ << " current iteration number is " << iter;
                 break;
             }
         }
@@ -53,10 +61,67 @@ namespace adaptive_open_local_planner
         linear_velocity_vec = convertGlobalBestToVelocityVec();
         for (int index = 0; index < linear_velocity_vec.size(); index++)
         {
-            DLOG(INFO) << "velocity is " << linear_velocity_vec[index] << " upper velocity boundary is " << linear_velocity_boundary_[index].second << " diff is " << linear_velocity_boundary_[index].second - linear_velocity_vec[index];
+            // DLOG(INFO) << "velocity is " << linear_velocity_vec[index] << " upper velocity boundary is " << linear_velocity_boundary_[index].second << " diff is " << linear_velocity_boundary_[index].second - linear_velocity_vec[index];
         }
         publishJerk();
-        return linear_velocity_vec;
+        findAngularVelocity();
+        return convertDividedPathToFullPath();
+        // return velocity_vec;
+    }
+
+    void PSO::findAngularVelocity()
+    {
+        DLOG(INFO) << "in findAngularVelocity:";
+        findFineVelocityVec(global_best_.position_vec);
+
+        float angular_velocity = 0;
+
+        // set dt to a constant value
+        float angle_diff, delta_time, delta_distance;
+        Waypoint next_point, current_point;
+        // DLOG(INFO) << "size of fine_velocity_vec is " << fine_velocity_vec.size();
+
+        // for (const auto &element : full_path_vec)
+        // {
+        //     DLOG_IF(INFO, std::isnan(element.x) || std::isnan(element.y)) << "waypoint is NAN. current point is " << element.x << " " << element.y;
+        // }
+        // DLOG(INFO) << "size of fine_velocity_vec is " << fine_velocity_vec.size() << " size of full path vec is " << full_path_vec.size();
+        // for (int index = 0; index < fine_velocity_vec.size() - 1; index++)
+        // {
+
+        // if (index < divided_path_[0].size())
+        // {
+        //     current_point = divided_path_[0][index];
+        //     next_point = divided_path_[0][index + 1];
+        //     // DLOG(INFO) << "index smaller than divided_path_[0].size()";
+        //     DLOG_IF(INFO, std::isnan(current_point.x) || std::isnan(current_point.y) || std::isnan(next_point.y) || std::isnan(next_point.y)) << "waypoint is NAN. current point is " << current_point.x << " " << current_point.y << "next point is " << next_point.x << " " << next_point.y << " index is " << index;
+        //     DLOG_IF(INFO, std::isnan(divided_path_[0][index].x) || std::isnan(divided_path_[0][index].y) || std::isnan(divided_path_[0][index + 1].y) || std::isnan(divided_path_[0][index + 1].y)) << "waypoint is NAN. divided_path_[0][index] is " << divided_path_[0][index].x << " " << divided_path_[0][index].y << "divided_path_[0][index + 1] is " << divided_path_[0][index + 1].x << " " << divided_path_[0][index + 1].y << " index is " << index;
+        // }
+        // else
+        // {
+        //     // DLOG(INFO) << "index larger than divided_path_[0].size()";
+        //     current_point = divided_path_[1][index - divided_path_[0].size()];
+        //     next_point = divided_path_[1][index - divided_path_[0].size() + 1];
+        //     DLOG_IF(INFO, std::isnan(current_point.x) || std::isnan(current_point.y) || std::isnan(next_point.y) || std::isnan(next_point.y)) << "waypoint is NAN. current point is " << current_point.x << " " << current_point.y << "next point is " << next_point.x << " " << next_point.y << " index - divided_path_[0].size() is " << index - divided_path_[0].size();
+        //     DLOG_IF(INFO, std::isnan(divided_path_[1][index - divided_path_[0].size()].x) || std::isnan(divided_path_[1][index - divided_path_[0].size()].y) || std::isnan(divided_path_[1][index - divided_path_[0].size() + 1].y) || std::isnan(divided_path_[1][index - divided_path_[0].size() + 1].y)) << "waypoint is NAN. divided_path_[1][index - divided_path_[0].size()] is " << divided_path_[1][index - divided_path_[0].size()].x << " " << divided_path_[1][index - divided_path_[0].size()].y << "divided_path_[1][index - divided_path_[0].size() + 1] is " << divided_path_[1][index - divided_path_[0].size() + 1].x << " " << divided_path_[1][index - divided_path_[0].size() + 1].y << " index is " << index - divided_path_[0].size();
+        // }
+        for (int i = 0; i < divided_path_.size(); i++)
+        {
+            for (int j = 0; j < divided_path_[i].size() - 1; j++)
+            {
+                delta_distance = PlannerHelpers::getDistance(divided_path_[i][j], divided_path_[i][j + 1]);
+                angle_diff = divided_path_[i][j + 1].heading - divided_path_[i][j].heading;
+                delta_time = 2 * delta_distance / (divided_path_[i][j + 1].speed + divided_path_[i][j].speed);
+
+                angular_velocity = angle_diff / delta_time;
+                divided_path_[i][j].angular_speed = angular_velocity;
+            }
+        }
+
+        // }
+
+        DLOG(INFO) << "out findAngularVelocity";
+        // return angular_velocity_vec;
     }
 
     void PSO::setConstraint(const std::vector<std::pair<float, float>> &linear_velocity_boundary)
@@ -205,22 +270,23 @@ namespace adaptive_open_local_planner
     float PSO::evaluateFitnessFunction(const Particle &particle)
     {
         // original cost function is cost= distance/velocity.
-        // need to add jerk to it.
         // DLOG(INFO) << "in evaluateFitnessFunction";
-        float distance, cost = 0;
+        float distance, cost = 0, jerk_portion, delta_velocity, time;
         // DLOG(INFO) << "size of particle.position_vec is " << particle.position_vec.size();
         // DLOG(INFO) << "size of divided_path_ is " << divided_path_.size();
         for (size_t i = 0; i < particle.position_vec.size() - 1; i++)
         {
             // DLOG(INFO) << "current index is " << i;
-
             // set distance
             DLOG_IF(FATAL, particle.position_vec.size() != (divided_path_.size() + 1)) << "velocity vec size is not equal to (divided path size +1)";
             distance = PlannerHelpers::getDistance(divided_path_[i]);
+            delta_velocity = (particle.position_vec[i + 1] + particle.position_vec[i]);
+
             // calculate cost
             if ((particle.position_vec[i] + particle.position_vec[i + 1]) != 0)
             {
-                cost = cost + 2 * distance / (particle.position_vec[i] + particle.position_vec[i + 1]);
+                time = 2 * distance / (particle.position_vec[i] + particle.position_vec[i + 1]);
+                cost = cost + time;
             }
             else
             {
@@ -228,8 +294,17 @@ namespace adaptive_open_local_planner
                 cost = cost + 100000;
             }
         }
-        // DLOG(INFO) << "cost is " << cost;
+        // DLOG(INFO) << "velocity is " << cost;
         cost = cost + evaluateFitnessFunctionConstraints(particle);
+        // DLOG(INFO) << "constraints cost is " << evaluateFitnessFunctionConstraints(particle);
+        // DLOG(INFO) << "cost is " << cost;
+        bool add_jerk = true;
+        if (add_jerk)
+        {
+            jerk_portion = std::abs(PlannerHelpers::sumVector(findJerk(particle)));
+            // DLOG(INFO) << "jerk portion cost is " << jerk_portion;
+            cost = cost + jerk_portion;
+        }
         // DLOG(INFO) << "cost is " << cost;
         return cost;
     }
@@ -309,39 +384,42 @@ namespace adaptive_open_local_planner
 
     std::vector<float> PSO::findJerk(const Particle &particle)
     {
+        // DLOG(INFO) << "in findJerk";
         std::vector<float> jerk_vec;
         // acceleration=velocity / time, velocity should use average velocity, time = distance / average velocity
-        float distance, avg_velocity, time, acceleration, jerk;
+        float distance, jerk, time_limit, start_velocity, end_velocity, A, B, C, D;
         for (size_t i = 0; i < divided_path_.size(); i++)
         {
-            // 1. find distance
+            // set velocity
+            start_velocity = particle.position_vec[i];
+            end_velocity = particle.position_vec[i + 1];
+            // set distance
             distance = PlannerHelpers::getDistance(divided_path_[i]);
-            // 2. find average velocity
-            avg_velocity = (particle.position_vec[i] + particle.position_vec[i + 1]) / 2;
-            // 3. get time
-            if (avg_velocity != 0)
+            // set time: t1=2s/(v0+v1)
+            if ((start_velocity + end_velocity) != 0)
             {
-                time = distance / avg_velocity;
+                time_limit = 2 * distance / (start_velocity + end_velocity);
             }
             else
             {
-                time = 100000000;
-                DLOG(WARNING) << "average velocity is zero!!!";
-            }
-            if (time != 0)
-            {
-                acceleration = (particle.position_vec[i + 1] - particle.position_vec[i]) / time;
-                jerk = acceleration / time;
-            }
-            else
-            {
-                acceleration = 100000000;
-                jerk = 10000000;
-                DLOG(WARNING) << "time is zero!!!";
+                DLOG(FATAL) << "start velocity + end velocity is zero!!!";
             }
 
-            jerk_vec.emplace_back(jerk);
+            // A=-2*(v1-v0)/t1^3;B=3(v1-v0)/t1^2;C=0;D=v0
+            A = -2 * (end_velocity - start_velocity) / std::pow(time_limit, 3);
+            B = 3 * (end_velocity - start_velocity) / std::pow(time_limit, 2);
+            C = 0;
+            D = start_velocity;
+            // DLOG(INFO) << "time limit is " << time_limit;
+            for (float time = 0; time < time_limit; time = time + 0.01 * time_limit)
+            {
+                jerk = 6 * A * time + 2 * B;
+
+                jerk_vec.emplace_back(jerk);
+                // DLOG(INFO) << "time is " << time;
+            }
         }
+        // DLOG(INFO) << "out findJerk";
         return jerk_vec;
     }
 
@@ -374,5 +452,116 @@ namespace adaptive_open_local_planner
         {
             DLOG(WARNING) << "size of jerk vec is zero!!!";
         }
+    }
+
+    void PSO::findFineVelocityVec(const std::vector<float> &coarse_velocity_vec)
+    {
+        DLOG(INFO) << "in findFineVelocityVec";
+        std::vector<float> fine_velocity_vec;
+        float distance, time_limit, start_velocity, end_velocity, A, B, C, D;
+        // DLOG(INFO) << "coarse_velocity_vec size is " << coarse_velocity_vec.size();
+        for (size_t i = 0; i < coarse_velocity_vec.size() - 1; i++)
+        {
+            // set velocity
+            start_velocity = coarse_velocity_vec[i];
+            end_velocity = coarse_velocity_vec[i + 1];
+            // set distance
+            distance = PlannerHelpers::getDistance(divided_path_[i]);
+            // set time: t1=2s/(v0+v1)
+            if ((start_velocity + end_velocity) != 0)
+            {
+                time_limit = 2 * distance / (start_velocity + end_velocity);
+            }
+            else
+            {
+                DLOG(FATAL) << "start velocity + end velocity is zero!!!";
+            }
+
+            // A=-2*(v1-v0)/t1^3;B=3(v1-v0)/t1^2;C=0;D=v0
+            A = -2 * (end_velocity - start_velocity) / std::pow(time_limit, 3);
+            B = 3 * (end_velocity - start_velocity) / std::pow(time_limit, 2);
+            C = 0;
+            D = start_velocity;
+
+            setVelocityForWayPoint(start_velocity, end_velocity, time_limit, A, B, C, D, divided_path_[i]);
+            // DLOG(INFO) << "time limit is " << time_limit;
+            // for (float time = 0; time < time_limit; time = time + 0.01 * time_limit)
+            // {
+            //     float temp_velocity = A * std::pow(time, 3) + B * std::pow(time, 2) + C * time + D;
+
+            //     fine_velocity_vec.emplace_back(temp_velocity);
+            //     // DLOG(INFO) << "time is " << time;
+            // }
+        }
+        DLOG(INFO) << "out findFineVelocityVec";
+        // return fine_velocity_vec;
+    }
+
+    std::vector<Waypoint> PSO::convertDividedPathToFullPath()
+    {
+        std::vector<Waypoint> full_path_vec;
+        for (const auto &element_vec : divided_path_)
+        {
+            for (const auto &element : element_vec)
+            {
+                full_path_vec.emplace_back(element);
+            }
+        }
+        return full_path_vec;
+    }
+
+    void PSO::setVelocityForWayPoint(float start_velocity, float end_velocity, float time_limit, float A, float B, float C, float D, std::vector<Waypoint> &path)
+    {
+        DLOG(INFO) << "in setVelocityForWayPoint";
+        if (path.size() < 2)
+        {
+            DLOG(WARNING) << "path size is too small, size is " << path.size();
+            return;
+        }
+
+        path[0].speed = start_velocity;
+        path.back().speed = end_velocity;
+        float time, velocity, distance;
+        for (size_t i = 1; i < path.size() - 1; i++)
+        {
+            distance = PlannerHelpers::getDistance(path[i - 1], path[i]);
+            time = solveTime(A, B, C, D, distance, time_limit);
+            velocity = getVelocity(time, A, B, C, D);
+            path[i].speed = velocity;
+        }
+        DLOG(INFO) << "out setVelocityForWayPoint";
+    }
+
+    float PSO::solveTime(float A, float B, float C, float D, float distance, float time_limit)
+    {
+        DLOG(INFO) << "in solveTime";
+        float time, temp, time_lower_limit = 0, time_upper_limit = time_limit;
+
+        while (1)
+        {
+            time = 0.5 * (time_upper_limit - time_lower_limit) + time_lower_limit;
+            temp = 0.25 * A * std::pow(time, 4) + B * std::pow(time, 3) / 3 + D * time;
+            if (std::abs(temp - distance) < 1e-3)
+            {
+                DLOG(INFO) << "time found: " << time;
+                break;
+            }
+
+            if (temp > distance)
+            {
+                time_upper_limit = time;
+            }
+            else
+            {
+                time_lower_limit = time;
+            }
+        }
+        DLOG(INFO) << "out solveTime";
+        return time;
+    }
+    float PSO::getVelocity(float time, float A, float B, float C, float D)
+    {
+        float velocity = A * std::pow(time, 3) + B * std::pow(time, 2) + C * time + D;
+        return velocity;
     }
 }

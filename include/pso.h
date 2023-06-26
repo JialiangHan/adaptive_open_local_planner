@@ -7,6 +7,7 @@
 #include <ros/ros.h>
 #include <ros/console.h>
 #include <std_msgs/Float32.h>
+#include <cmath>
 namespace adaptive_open_local_planner
 {
     class PSO
@@ -18,9 +19,9 @@ namespace adaptive_open_local_planner
         /**
          * @brief main loop
          *
-         * @return std::vector<float> list of vehicle speed
+         * @return std::vector<float> list of vehicle speed, first item is velocity vec, second one is angular velocity vec
          */
-        std::vector<float> evaluate();
+        std::vector<Waypoint> evaluate();
         struct PersonalBest
         {
             // this is position, list of velocity for local path
@@ -78,8 +79,38 @@ namespace adaptive_open_local_planner
 
         void publishJerk();
 
+        /**
+         * @brief coarse velocity vec got from PSO should be converted to a fine velocity vec. V(t)=A*t^3+B*t^2+C*t+D, A=-2*(v1-v0)/t1^3;B=3(v1-v0)/t1^2;C=0;D=v0; t1=2s/(v0+v1)
+         *
+         * @param coarse_velocity_vec
+         * @return std::vector<float>
+         */
+        void findFineVelocityVec(const std::vector<float> &coarse_velocity_vec);
+
+        void findAngularVelocity();
+
+        std::vector<Waypoint> convertDividedPathToFullPath();
+
+        void setVelocityForWayPoint(float start_velocity, float end_velocity, float time_limit, float A, float B, float C, float D, std::vector<Waypoint> &path);
+
+        float getVelocity(float time, float A, float B, float C, float D);
+        /**
+         * @brief distance=(A*t^4)4+(B*t^3)/3+D*t
+         *
+         * @param A
+         * @param B
+         * @param C
+         * @param D
+         * @param start_velocity
+         * @param distance
+         * @return float
+         */
+        float solveTime(float A, float B, float C, float D, float distance, float time_limit);
+
     private:
         std::vector<std::vector<Waypoint>> divided_path_;
+        // time limit is also need
+        std::vector<std::vector<float>> path_parameter_vec_;
 
         float weighting_;
 
