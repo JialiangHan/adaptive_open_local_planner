@@ -83,5 +83,9 @@ namespace adaptive_open_local_planner
         static float getDistance(const Waypoint &prev, const Waypoint &current);
 
         static float sumVector(const std::vector<float>& vector);
+
+        static std::vector<float> getFirstVec(const std::vector<std::pair<float, float>> &pair_vec);
+
+        static std::vector<float> getSecondVec(const std::vector<std::pair<float, float>> &pair_vec);
     };
 };

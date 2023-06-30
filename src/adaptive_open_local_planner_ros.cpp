@@ -984,31 +984,33 @@ namespace adaptive_open_local_planner
         matplotlibcpp::figure();
         // matplotlibcpp::ion();
         matplotlibcpp::clf();
-        std::vector<float> linear_velocity_vec = getLinearVelocityVec(waypoint_vec);
-        std::vector<float> jerk_vec = getJerk(waypoint_vec);
-        DLOG(INFO) << "jerk vec size is " << jerk_vec.size();
+        std::vector<std::pair<float, float>> linear_velocity_pair_vec = getLinearVelocityVec(waypoint_vec);
+        std::vector<std::pair<float, float>> jerk_pair_vec = getJerk(waypoint_vec);
+        // DLOG(INFO) << "jerk vec size is " << jerk_vec.size();
         std::vector<std::string> title_vec = {"linear velocity", "jerk"};
         for (size_t i = 0; i < title_vec.size(); i++)
         {
             matplotlibcpp::subplot(2, 1, i + 1);
-            std::vector<float> vec;
-
+            std::vector<float> y_vec, x_vec;
+            std::vector<std::pair<float, float>> target_pair_vec;
             if (title_vec[i] == "linear velocity")
             {
-                vec = linear_velocity_vec;
+                target_pair_vec = linear_velocity_pair_vec;
             }
             if (title_vec[i] == "jerk")
             {
-                vec = jerk_vec;
+                target_pair_vec = jerk_pair_vec;
             }
-
-            matplotlibcpp::plot(vec, {{"label", "raw path"}});
+            y_vec = PlannerHelpers::getSecondVec(target_pair_vec);
+            x_vec = PlannerHelpers::getFirstVec(target_pair_vec);
+            matplotlibcpp::plot(x_vec, y_vec, {{"label", "raw path"}});
 
             matplotlibcpp::legend({{"loc", "upper right"}});
             // DLOG(INFO) << "Plot curvature for topic: " << curvature_vec.first;
 
             matplotlibcpp::title(title_vec[i]);
             matplotlibcpp::ylabel(title_vec[i]);
+            matplotlibcpp::xlabel("distance[m]");
             // matplotlibcpp::ylim(0, 1);
             matplotlibcpp::grid(true);
             // matplotlibcpp::show();
@@ -1017,22 +1019,32 @@ namespace adaptive_open_local_planner
         DLOG(INFO) << "out plot";
     }
 
-    std::vector<float> AdaptiveOpenLocalPlannerROS::getLinearVelocityVec(const std::vector<Waypoint> &waypoint_vec)
+    std::vector<std::pair<float, float>> AdaptiveOpenLocalPlannerROS::getLinearVelocityVec(const std::vector<Waypoint> &waypoint_vec)
     {
         // DLOG(INFO) << "in getLinearVelocityVec";
-        std::vector<float> linear_velocity_vec;
+        std::vector<std::pair<float, float>> linear_velocity_vec;
+        float distance = 0, velocity;
+        int i = 0;
+        Waypoint start_point = waypoint_vec[0];
         for (const auto &element : waypoint_vec)
         {
-            linear_velocity_vec.emplace_back(element.speed);
+            velocity = element.speed;
+            if (i != 0)
+            {
+                distance = PlannerHelpers::getDistance(PlannerHelpers::extractVector(waypoint_vec, 0, i));
+            }
+
+            linear_velocity_vec.emplace_back(std::make_pair(distance, velocity));
+            i++;
         }
         // DLOG(INFO) << "out getLinearVelocityVec";
         return linear_velocity_vec;
     }
 
-    std::vector<float> AdaptiveOpenLocalPlannerROS::getJerk(const std::vector<Waypoint> &waypoint_vec)
+    std::vector<std::pair<float, float>> AdaptiveOpenLocalPlannerROS::getJerk(const std::vector<Waypoint> &waypoint_vec)
     {
         DLOG(INFO) << "in getJerk";
-        std::vector<float> jerk_vec = velocity_planner_ptr_->findJerk();
+        std::vector<std::pair<float, float>> jerk_vec = velocity_planner_ptr_->findJerk();
         DLOG(INFO) << "out getJerk";
         return jerk_vec;
     }

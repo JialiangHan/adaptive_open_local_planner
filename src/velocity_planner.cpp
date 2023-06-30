@@ -239,7 +239,7 @@ namespace adaptive_open_local_planner
         // }
     }
 
-    std::vector<float> VelocityPlanner::findJerk()
+    std::vector<std::pair<float, float>> VelocityPlanner::findJerk()
     {
         return pso_ptr_->findJerk();
     }

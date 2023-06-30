@@ -22,7 +22,7 @@ namespace adaptive_open_local_planner
 
         std::vector<Waypoint> planVelocity(const std::vector<Waypoint> &local_path, const float &current_speed);
 
-        std::vector<float> findJerk();
+        std::vector<std::pair<float, float>> findJerk();
 
     private:
         /**

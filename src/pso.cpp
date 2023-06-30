@@ -579,8 +579,56 @@ namespace adaptive_open_local_planner
         return velocity;
     }
 
-    std::vector<float> PSO::findJerk()
+    std::vector<std::pair<float, float>> PSO::findJerk()
     {
-        return findJerk(global_best_);
+        return findJerkPair(global_best_);
+    }
+
+    std::vector<std::pair<float, float>> PSO::findJerkPair(const Particle &particle)
+    {
+        // DLOG(INFO) << "in findJerk";
+        std::vector<std::pair<float, float>> jerk_pair_vec;
+        // acceleration=velocity / time, velocity should use average velocity, time = distance / average velocity
+        float total_distance, jerk, time_limit, distance = 0, start_velocity, end_velocity, A, B, C, D;
+        for (size_t i = 0; i < divided_path_.size(); i++)
+        {
+            // set velocity
+            start_velocity = particle.position_vec[i];
+            end_velocity = particle.position_vec[i + 1];
+            // set distance
+            total_distance = PlannerHelpers::getDistance(divided_path_[i]);
+            // set time: t1=2s/(v0+v1)
+            if ((start_velocity + end_velocity) != 0)
+            {
+                time_limit = 2 * total_distance / (start_velocity + end_velocity);
+            }
+            else
+            {
+                DLOG(FATAL) << "start velocity + end velocity is zero!!!";
+            }
+
+            // A=-2*(v1-v0)/t1^3;B=3(v1-v0)/t1^2;C=0;D=v0
+            A = -2 * (end_velocity - start_velocity) / std::pow(time_limit, 3);
+            B = 3 * (end_velocity - start_velocity) / std::pow(time_limit, 2);
+            C = 0;
+            D = start_velocity;
+            float previous_distance = 0;
+            for (size_t j = 0; j < i; j++)
+            {
+                previous_distance = previous_distance + PlannerHelpers::getDistance(divided_path_[j]);
+            }
+
+            // DLOG(INFO) << "time limit is " << time_limit;
+            for (float time = 0; time < time_limit; time = time + 0.01 * time_limit)
+            {
+                jerk = 6 * A * time + 2 * B;
+                distance = 0.25 * A * std::pow(time, 4) + B * std::pow(time, 3) / 3 + D * time;
+                distance = distance + previous_distance;
+                jerk_pair_vec.emplace_back(std::make_pair(distance, jerk));
+                // DLOG(INFO) << "time is " << time;
+            }
+        }
+        // DLOG(INFO) << "out findJerk";
+        return jerk_pair_vec;
     }
 }

@@ -854,4 +854,24 @@ namespace adaptive_open_local_planner
         // DLOG(INFO) << "out sumVector";
         return result;
     }
+
+    std::vector<float> PlannerHelpers::getFirstVec(const std::vector<std::pair<float, float>> &pair_vec)
+    {
+        std::vector<float> first_vec;
+        for (const auto &element : pair_vec)
+        {
+            first_vec.emplace_back(element.first);
+        }
+        return first_vec;
+    }
+
+    std::vector<float> PlannerHelpers::getSecondVec(const std::vector<std::pair<float, float>> &pair_vec)
+    {
+        std::vector<float> second_vec;
+        for (const auto &element : pair_vec)
+        {
+            second_vec.emplace_back(element.second);
+        }
+        return second_vec;
+    }
 }

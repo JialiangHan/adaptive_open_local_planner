@@ -123,10 +123,15 @@ namespace adaptive_open_local_planner
         void calculateVelocityAndSteeringAngleRate(const std::vector<Waypoint> &best_path, float &velocity, float &steering_angle_rate);
 
         void plot(const std::vector<Waypoint> &waypoint_vec);
+        /**
+         * @brief Get the Linear Velocity Vec object
+         *
+         * @param waypoint_vec
+         * @return std::vector<std::pair<float,float>> first is distance, second is velocity
+         */
+        std::vector<std::pair<float, float>> getLinearVelocityVec(const std::vector<Waypoint> &waypoint_vec);
 
-        std::vector<float> getLinearVelocityVec(const std::vector<Waypoint> &waypoint_vec);
-
-        std::vector<float> getJerk(const std::vector<Waypoint> &waypoint_vec);
+        std::vector<std::pair<float, float>> getJerk(const std::vector<Waypoint> &waypoint_vec);
 
     protected:
         /**
