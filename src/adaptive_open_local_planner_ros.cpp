@@ -726,20 +726,27 @@ namespace adaptive_open_local_planner
         {
             velocity = waypoint_vec[closest_index + 1].speed;
             steering_angle_rate = waypoint_vec[closest_index].angular_speed;
-            // DLOG(INFO) << "closest_index is " << closest_index << " velocity is " << velocity;
+            // DLOG(INFO) << "closest_index is " << closest_index << " velocity is " << velocity << " angular speed is " << steering_angle_rate;
         }
         else
         {
             velocity = waypoint_vec[closest_index].speed;
             steering_angle_rate = waypoint_vec[closest_index].angular_speed;
-            // DLOG(INFO) << "closest_index is " << closest_index <+++< " velocity is " << velocity;
+            // DLOG(INFO) << "closest_index is " << closest_index << " velocity is " << velocity << " angular speed is " << steering_angle_rate;
         }
         // DLOG(INFO) << "current vehicle speed is " << current_state_in_map_frame_.speed;
-        // for (const auto velocity : velocity_vec)
-        // {
-        //     DLOG(INFO) << "velocity is " << velocity;
-        // }
 
+        for (const auto waypoint : waypoint_vec)
+        {
+            if (waypoint.speed > params_.max_linear_velocity || waypoint.speed < 1e-3)
+            {
+                for (const auto waypoint : waypoint_vec)
+                {
+                    DLOG(INFO) << "velocity is " << waypoint.speed;
+                }
+            }
+        }
+        plot(waypoint_vec);
         // velocity = best_path[closest_index].speed;
         // steering_angle_rate = calculateAngleVelocity(best_path[closest_index], best_path[closest_index + 1]);
     }
@@ -968,6 +975,66 @@ namespace adaptive_open_local_planner
         DLOG(INFO) << "next point heading is " << next_point.heading << " current point heading is " << current_point.heading;
         angle_velocity = angle_diff / dt;
         return angle_velocity;
+    }
+
+    void AdaptiveOpenLocalPlannerROS::plot(const std::vector<Waypoint> &waypoint_vec)
+    {
+        DLOG(INFO) << "in plot";
+        // plot velocity
+        matplotlibcpp::figure();
+        // matplotlibcpp::ion();
+        matplotlibcpp::clf();
+        std::vector<float> linear_velocity_vec = getLinearVelocityVec(waypoint_vec);
+        std::vector<float> jerk_vec = getJerk(waypoint_vec);
+        DLOG(INFO) << "jerk vec size is " << jerk_vec.size();
+        std::vector<std::string> title_vec = {"linear velocity", "jerk"};
+        for (size_t i = 0; i < title_vec.size(); i++)
+        {
+            matplotlibcpp::subplot(2, 1, i + 1);
+            std::vector<float> vec;
+
+            if (title_vec[i] == "linear velocity")
+            {
+                vec = linear_velocity_vec;
+            }
+            if (title_vec[i] == "jerk")
+            {
+                vec = jerk_vec;
+            }
+
+            matplotlibcpp::plot(vec, {{"label", "raw path"}});
+
+            matplotlibcpp::legend({{"loc", "upper right"}});
+            // DLOG(INFO) << "Plot curvature for topic: " << curvature_vec.first;
+
+            matplotlibcpp::title(title_vec[i]);
+            matplotlibcpp::ylabel(title_vec[i]);
+            // matplotlibcpp::ylim(0, 1);
+            matplotlibcpp::grid(true);
+            // matplotlibcpp::show();
+            matplotlibcpp::save("/home/jialiang/Code/thesis_ws/src/adaptive_open_local_planner/figs/linear_velocity.png");
+        }
+        DLOG(INFO) << "out plot";
+    }
+
+    std::vector<float> AdaptiveOpenLocalPlannerROS::getLinearVelocityVec(const std::vector<Waypoint> &waypoint_vec)
+    {
+        // DLOG(INFO) << "in getLinearVelocityVec";
+        std::vector<float> linear_velocity_vec;
+        for (const auto &element : waypoint_vec)
+        {
+            linear_velocity_vec.emplace_back(element.speed);
+        }
+        // DLOG(INFO) << "out getLinearVelocityVec";
+        return linear_velocity_vec;
+    }
+
+    std::vector<float> AdaptiveOpenLocalPlannerROS::getJerk(const std::vector<Waypoint> &waypoint_vec)
+    {
+        DLOG(INFO) << "in getJerk";
+        std::vector<float> jerk_vec = velocity_planner_ptr_->findJerk();
+        DLOG(INFO) << "out getJerk";
+        return jerk_vec;
     }
 
 } // end namespace adaptive_open_local_planner

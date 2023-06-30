@@ -66,7 +66,7 @@ AdaptiveOpenLocalPlannerROS:
   max_global_plan_lookahead_dist : 3.0
   global_plan_prune_distance : 1
 
-  evaluate_path: true
+  evaluate_path: false
 
   weighting: 0.1
   personal_learning_rate: 0.1

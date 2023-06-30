@@ -21,7 +21,7 @@
 #include <base_local_planner/goal_functions.h>
 #include <base_local_planner/odometry_helper_ros.h>
 #include <base_local_planner/costmap_model.h>
-
+#include "matplotlibcpp.h"
 // message types
 #include <nav_msgs/Path.h>
 #include <nav_msgs/Odometry.h>
@@ -121,6 +121,12 @@ namespace adaptive_open_local_planner
          * @param steering_angle_rate
          */
         void calculateVelocityAndSteeringAngleRate(const std::vector<Waypoint> &best_path, float &velocity, float &steering_angle_rate);
+
+        void plot(const std::vector<Waypoint> &waypoint_vec);
+
+        std::vector<float> getLinearVelocityVec(const std::vector<Waypoint> &waypoint_vec);
+
+        std::vector<float> getJerk(const std::vector<Waypoint> &waypoint_vec);
 
     protected:
         /**

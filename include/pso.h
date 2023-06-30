@@ -41,6 +41,10 @@ namespace adaptive_open_local_planner
 
         typedef std::vector<Particle> Swarm;
 
+        std::vector<float> findJerk(const Particle &particle);
+
+        std::vector<float> findJerk();
+
     private:
         bool initialize(const std::vector<std::vector<Waypoint>> &divided_path, const std::vector<std::pair<float, float>> &linear_velocity_boundary, const float &min_acceleration, const float &max_acceleration, const float &weighting, const float &personal_learning_rate, const float &global_learning_rate, const float &cost_difference_boundary, const int &max_interation, const int &number_of_particle);
 
@@ -72,8 +76,6 @@ namespace adaptive_open_local_planner
         std::vector<float> convertGlobalBestToVelocityVec();
 
         std::vector<float> findAcceleration(const Particle &particle);
-
-        std::vector<float> findJerk(const Particle &particle);
 
         void updateParticleToVelocityBoundary(Particle &particle);
 

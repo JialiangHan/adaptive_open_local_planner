@@ -47,13 +47,15 @@ namespace adaptive_open_local_planner
             for (uint j = i + 1; j < local_path.size(); j++)
             {
                 float current_delta_curvature = findDeltaCurvature(local_path, i, j);
+
                 if (current_delta_curvature > path_divide_factor_ * delta_curvature_global)
                 {
                     if (j != i)
                     {
                         divided_path.emplace_back(PlannerHelpers::extractVector(local_path, i, j));
-                        i = j + 1;
-                        // DLOG(INFO) << "divided path.";
+                        // DLOG(INFO) << "divided path. i is " << i << " j is " << j << " current_delta_curvature is " << current_delta_curvature << " delta_curvature_global is " << delta_curvature_global;
+                        i = j;
+
                         break;
                     }
                     else
@@ -73,13 +75,14 @@ namespace adaptive_open_local_planner
             }
         }
         // DLOG(INFO) << "divided_path size is " << divided_path.size();
-        // for (const auto &unit : divided_path)
-        // {
-        //     for (const auto &element : unit)
-        //     {
-        //         DLOG_IF(INFO, std::isnan(element.x) || std::isnan(element.y)) << "waypoint is NAN. current point is " << element.x << " " << element.y;
-        //     }
-        // }
+        for (const auto &unit : divided_path)
+        {
+            // DLOG(INFO) << "divided path size is " << unit.size();
+            for (const auto &element : unit)
+            {
+                DLOG_IF(INFO, std::isnan(element.x) || std::isnan(element.y)) << "waypoint is NAN. current point is " << element.x << " " << element.y;
+            }
+        }
 
         DLOG_IF(FATAL, divided_path.size() == 0) << "something wrong, divided path size is zero!!!";
     }
@@ -234,5 +237,10 @@ namespace adaptive_open_local_planner
         // {
         //     DLOG(INFO) << "velocity boundary are " << element.first << " " << element.second;
         // }
+    }
+
+    std::vector<float> VelocityPlanner::findJerk()
+    {
+        return pso_ptr_->findJerk();
     }
 }
