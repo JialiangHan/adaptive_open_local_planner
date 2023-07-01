@@ -40,6 +40,7 @@
 // costmap
 #include <costmap_2d/costmap_2d_ros.h>
 
+#include <ctime>
 namespace adaptive_open_local_planner
 {
 

@@ -1014,7 +1014,12 @@ namespace adaptive_open_local_planner
             // matplotlibcpp::ylim(0, 1);
             matplotlibcpp::grid(true);
             // matplotlibcpp::show();
-            matplotlibcpp::save("/home/jialiang/Code/thesis_ws/src/adaptive_open_local_planner/figs/linear_velocity.png");
+            std::string path = "/home/jialiang/Code/thesis_ws/src/adaptive_open_local_planner/figs/";
+            std::string file_name = "linear_velocity";
+
+            auto now = std::time(0);
+            std::string time_mark = std::to_string(now);
+            matplotlibcpp::save(path + file_name + time_mark + ".png");
         }
         DLOG(INFO) << "out plot";
     }
