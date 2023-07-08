@@ -53,11 +53,12 @@ namespace adaptive_open_local_planner
             // DLOG(INFO) << "evaluate_path is " << params_.evaluate_path;
             if (params_.evaluate_path)
             {
-                std::string path_topic, cmd_topic, jerk_topic;
+                std::string path_topic, cmd_topic, jerk_topic, cost_topic;
                 path_topic = "extracted_path_rviz";
                 cmd_topic = "cmd_vel";
                 jerk_topic = "jerk";
-                path_evaluator_ptr_.reset(new PathEvaluator(path_topic, cmd_topic, jerk_topic));
+                cost_topic = "cost";
+                path_evaluator_ptr_.reset(new PathEvaluator(path_topic, cmd_topic, jerk_topic, cost_topic));
             }
 
             // DLOG(INFO) << "max linear velocity is " << params_.max_linear_velocity;
@@ -726,13 +727,13 @@ namespace adaptive_open_local_planner
         {
             velocity = waypoint_vec[closest_index + 1].speed;
             steering_angle_rate = waypoint_vec[closest_index].angular_speed;
-            // DLOG(INFO) << "closest_index is " << closest_index << " velocity is " << velocity << " angular speed is " << steering_angle_rate;
+            DLOG(INFO) << "closest_index is " << closest_index << " velocity is " << velocity << " angular speed is " << steering_angle_rate;
         }
         else
         {
             velocity = waypoint_vec[closest_index].speed;
             steering_angle_rate = waypoint_vec[closest_index].angular_speed;
-            // DLOG(INFO) << "closest_index is " << closest_index << " velocity is " << velocity << " angular speed is " << steering_angle_rate;
+            DLOG(INFO) << "closest_index is " << closest_index << " velocity is " << velocity << " angular speed is " << steering_angle_rate;
         }
         // DLOG(INFO) << "current vehicle speed is " << current_state_in_map_frame_.speed;
 
@@ -746,7 +747,7 @@ namespace adaptive_open_local_planner
                 }
             }
         }
-        plot(waypoint_vec);
+        // plot(waypoint_vec);
         // velocity = best_path[closest_index].speed;
         // steering_angle_rate = calculateAngleVelocity(best_path[closest_index], best_path[closest_index + 1]);
     }
@@ -979,7 +980,7 @@ namespace adaptive_open_local_planner
 
     void AdaptiveOpenLocalPlannerROS::plot(const std::vector<Waypoint> &waypoint_vec)
     {
-        DLOG(INFO) << "in plot";
+        // DLOG(INFO) << "in plot";
         // plot velocity
         matplotlibcpp::figure();
         // matplotlibcpp::ion();
@@ -1021,7 +1022,7 @@ namespace adaptive_open_local_planner
             std::string time_mark = std::to_string(now);
             matplotlibcpp::save(path + file_name + time_mark + ".png");
         }
-        DLOG(INFO) << "out plot";
+        // DLOG(INFO) << "out plot";
     }
 
     std::vector<std::pair<float, float>> AdaptiveOpenLocalPlannerROS::getLinearVelocityVec(const std::vector<Waypoint> &waypoint_vec)
@@ -1048,9 +1049,9 @@ namespace adaptive_open_local_planner
 
     std::vector<std::pair<float, float>> AdaptiveOpenLocalPlannerROS::getJerk(const std::vector<Waypoint> &waypoint_vec)
     {
-        DLOG(INFO) << "in getJerk";
+        // DLOG(INFO) << "in getJerk";
         std::vector<std::pair<float, float>> jerk_vec = velocity_planner_ptr_->findJerk();
-        DLOG(INFO) << "out getJerk";
+        // DLOG(INFO) << "out getJerk";
         return jerk_vec;
     }
 

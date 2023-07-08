@@ -92,11 +92,16 @@ namespace adaptive_open_local_planner
         return 1;
     }
 
+    void PathEvaluator::CalculateCost(const std_msgs::Float32::ConstPtr &cost, const std::string &topic_name)
+    {
+        cost_vec_.emplace_back(cost->data);
+    }
+
     void PathEvaluator::Plot()
     {
         matplotlibcpp::ion();
         matplotlibcpp::clf();
-        std::vector<std::string> title_vec = {"curvature", "smoothness", "Angular velocity", "linear velocity", "jerk"};
+        std::vector<std::string> title_vec = {"curvature", "smoothness", "Angular velocity", "linear velocity", "jerk", "cost"};
         for (size_t i = 0; i < title_vec.size(); i++)
         {
             matplotlibcpp::subplot(2, 3, i + 1);
@@ -120,6 +125,10 @@ namespace adaptive_open_local_planner
             if (title_vec[i] == "jerk")
             {
                 vec = jerk_vec_;
+            }
+            if (title_vec[i] == "cost")
+            {
+                vec = cost_vec_;
             }
 
             matplotlibcpp::plot(vec, {{"label", "raw path"}});
