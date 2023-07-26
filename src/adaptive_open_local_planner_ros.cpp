@@ -709,6 +709,7 @@ namespace adaptive_open_local_planner
 
     void AdaptiveOpenLocalPlannerROS::calculateVelocityAndSteeringAngleRate(const std::vector<Waypoint> &best_path, float &velocity, float &steering_angle_rate)
     {
+        DLOG(INFO) << "in calculateVelocityAndSteeringAngleRate:";
         std::vector<Waypoint> waypoint_vec;
         Waypoint car_pos;
         car_pos.x = current_state_in_map_frame_.x;
@@ -747,9 +748,10 @@ namespace adaptive_open_local_planner
                 }
             }
         }
-        // plot(waypoint_vec);
+        plot(waypoint_vec);
         // velocity = best_path[closest_index].speed;
         // steering_angle_rate = calculateAngleVelocity(best_path[closest_index], best_path[closest_index + 1]);
+        DLOG(INFO) << "out calculateVelocityAndSteeringAngleRate.";
     }
 
     void AdaptiveOpenLocalPlannerROS::goalCheck()

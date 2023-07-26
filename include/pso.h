@@ -68,6 +68,8 @@ namespace adaptive_open_local_planner
 
         float handleVelocityConstraintsForFitnessFunction(const Particle &particle);
 
+        float handleJerkConstraintsForFitnessFunction(const Particle &particle);
+
         float handleAccelerationConstraintsForFitnessFunction(const Particle &particle);
 
         void updateParticle(Particle &particle);

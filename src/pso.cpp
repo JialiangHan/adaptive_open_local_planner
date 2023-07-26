@@ -43,36 +43,40 @@ namespace adaptive_open_local_planner
 
     std::vector<Waypoint> PSO::evaluate()
     {
+        DLOG(INFO) << "in evaluate:";
         std::vector<float> linear_velocity_vec;
         std::vector<float> angular_velocity_vec;
         std::vector<std::vector<float>> velocity_vec;
         for (size_t iter = 0; iter < max_interation_; iter++)
         {
+
             updateSwarm();
             updateGlobalBest();
             // end condition
             if (std::abs(global_best_.cost - prev_global_best_.cost) <= cost_difference_boundary_)
             {
-                // DLOG(INFO) << "current global best cost is " << global_best_.cost << " previous global best cost is " << prev_global_best_.cost << " difference is smaller than preset value: " << cost_difference_boundary_ << " current iteration number is " << iter;
+                DLOG(INFO) << "current global best cost is " << global_best_.cost << " previous global best cost is " << prev_global_best_.cost << " difference is smaller than preset value: " << cost_difference_boundary_ << " current iteration number is " << iter;
                 break;
             }
+            DLOG(INFO) << "in " << iter << " th interation.current global best cost " << global_best_.cost << " previous global best cost is " << prev_global_best_.cost << " cost difference boundary is " << cost_difference_boundary_;
         }
         // DLOG(INFO) << "current global best cost is " << global_best_.cost << " previous global best cost is " << prev_global_best_.cost << " difference is smaller than preset value: " << cost_difference_boundary_;
         linear_velocity_vec = convertGlobalBestToVelocityVec();
-        for (int index = 0; index < linear_velocity_vec.size(); index++)
-        {
-            // DLOG(INFO) << "velocity is " << linear_velocity_vec[index] << " upper velocity boundary is " << linear_velocity_boundary_[index].second << " diff is " << linear_velocity_boundary_[index].second - linear_velocity_vec[index];
-        }
+        // for (int index = 0; index < linear_velocity_vec.size(); index++)
+        // {
+        //     // DLOG(INFO) << "velocity is " << linear_velocity_vec[index] << " upper velocity boundary is " << linear_velocity_boundary_[index].second << " diff is " << linear_velocity_boundary_[index].second - linear_velocity_vec[index];
+        // }
         publishJerk();
         findAngularVelocity();
         plotCost();
+        DLOG(INFO) << "out evaluate.";
         return convertDividedPathToFullPath();
         // return velocity_vec;
     }
 
     void PSO::findAngularVelocity()
     {
-        // DLOG(INFO) << "in findAngularVelocity:";
+        DLOG(INFO) << "in findAngularVelocity:";
         findFineVelocityVec(global_best_.position_vec);
 
         float angular_velocity = 0;
@@ -121,7 +125,7 @@ namespace adaptive_open_local_planner
 
         // }
 
-        // DLOG(INFO) << "out findAngularVelocity";
+        DLOG(INFO) << "out findAngularVelocity";
         // return angular_velocity_vec;
     }
 
@@ -218,10 +222,10 @@ namespace adaptive_open_local_planner
 
         for (const auto &particle : particle_swarm_)
         {
-            // DLOG(INFO) << "cost is " << particle.cost;
+            // DLOG(INFO) << "cost is " << particle.cost << " global cost is " << global_best_.cost;
             if (global_best_.cost > particle.cost)
             {
-                // DLOG(INFO) << "set global best cost is " << particle.cost << " previous global best cost is " << global_best_.cost;
+                DLOG(INFO) << "set global best cost is " << particle.cost << " previous global best cost is " << global_best_.cost;
                 prev_global_best_ = global_best_;
                 global_best_ = particle;
             }
@@ -244,17 +248,16 @@ namespace adaptive_open_local_planner
         for (size_t i = 0; i < number_of_particle_; i++)
         {
             Particle particle;
-            // DLOG(INFO) << "size of linear_velocity_boundary_ is " << linear_velocity_boundary_.size();
+            DLOG(INFO) << "size of linear_velocity_boundary_ is " << linear_velocity_boundary_.size();
             for (size_t i = 0; i < linear_velocity_boundary_.size(); i++)
             {
-
                 // initialize position which is vehicle speed
                 initial_position = randomFloatNumber(linear_velocity_boundary_[i].first, linear_velocity_boundary_[i].second);
                 // change initial position to max velocity
                 // initial_position = std::max(linear_velocity_boundary_[i].first, linear_velocity_boundary_[i].second);
                 particle.position_vec.emplace_back(initial_position);
                 particle.velocity_vec.emplace_back(0);
-                // DLOG(INFO) << "index is " << i << " initial position is " << initial_position << " initial speed is " << 0;
+                DLOG(INFO) << "index is " << i << " initial position is " << initial_position << " initial speed is " << 0;
             }
             particle.cost = evaluateFitnessFunction(particle);
             particle.personal_best.position_vec = particle.position_vec;
@@ -306,43 +309,41 @@ namespace adaptive_open_local_planner
                 cost = cost + 100000;
             }
         }
-        // DLOG(INFO) << "velocity cost is " << cost;
+        DLOG(INFO) << "velocity cost is " << cost;
         cost = cost + evaluateFitnessFunctionConstraints(particle);
-        // DLOG(INFO) << "cost is " << cost;
+        DLOG(INFO) << "constraints is " << cost;
         bool add_jerk = false;
         if (add_jerk)
         {
-            // std::vector<float> jerk_vec = findJerk(particle);
-            // for (const auto &element : jerk_vec)
-            // {
-            //     // DLOG(INFO) << "current jerk is " << element;
-            //     jerk_portion += std::abs(element);
-            // }
             jerk_portion = sumJerk(particle);
-            DLOG_IF(INFO, jerk_portion < 0 || jerk_portion > 1e5) << "jerk portion cost is " << jerk_portion;
+            DLOG(INFO) << "jerk portion cost is " << jerk_portion;
+            // DLOG_IF(INFO, jerk_portion < 0 || jerk_portion > 1e5) << "jerk portion cost is " << jerk_portion;
             cost = cost + jerk_portion;
         }
-        // DLOG(INFO) << "cost is " << cost;
+        DLOG(INFO) << "cost is " << cost;
         DLOG(INFO) << "out evaluateFitnessFunction.";
         return cost;
     }
 
     std::vector<float> PSO::convertGlobalBestToVelocityVec()
     {
+        DLOG(INFO) << "in convertGlobalBestToVelocityVec:";
         return global_best_.position_vec;
     }
 
     float PSO::evaluateFitnessFunctionConstraints(const Particle &particle)
     {
-        float final_cost = 0, velocity_portion, acceleration_portion;
+        float final_cost = 0, velocity_portion, acceleration_portion, jerk_portion;
         // set a large constant
-        int weight = 1000000;
+        int weight = 10;
         // 1. handle velocity constraints
         velocity_portion = handleVelocityConstraintsForFitnessFunction(particle);
         // 2. handle acceleration constraints
         acceleration_portion = handleAccelerationConstraintsForFitnessFunction(particle);
-        // DLOG(INFO) << "velocity_portion is " << velocity_portion << " acceleration_portion is " << acceleration_portion;
-        final_cost = weight * velocity_portion + weight * acceleration_portion;
+
+        jerk_portion = handleJerkConstraintsForFitnessFunction(particle);
+        DLOG(INFO) << "velocity_portion is " << velocity_portion << " acceleration_portion is " << acceleration_portion << " jerk acceleration portion is " << jerk_portion;
+        final_cost = weight * velocity_portion + weight * acceleration_portion + weight * jerk_portion;
         return final_cost;
     }
 
@@ -445,9 +446,9 @@ namespace adaptive_open_local_planner
         for (int i = 0; i < particle.position_vec.size(); i++)
         {
             // lower limit
-            total_cost = total_cost + std::min(particle.position_vec[i] - linear_velocity_boundary_[i].first, (float)0);
+            total_cost = total_cost + std::abs(std::min(particle.position_vec[i] - linear_velocity_boundary_[i].first, (float)0));
             // upper limit
-            total_cost = total_cost + std::max(particle.position_vec[i] - linear_velocity_boundary_[i].second, (float)0);
+            total_cost = total_cost + std::abs(std::max(particle.position_vec[i] - linear_velocity_boundary_[i].second, (float)0));
         }
 
         return total_cost;
@@ -455,6 +456,7 @@ namespace adaptive_open_local_planner
 
     void PSO::publishJerk()
     {
+        DLOG(INFO) << "in publishJerk:";
         std::vector<float> jerk_vec = findJerk(global_best_);
         jerk_pub_ = nh_.advertise<std_msgs::Float32>("jerk", 1, true);
         std_msgs::Float32 jerk;
@@ -467,16 +469,19 @@ namespace adaptive_open_local_planner
         {
             DLOG(WARNING) << "size of jerk vec is zero!!!";
         }
+        DLOG(INFO) << "out publishJerk.";
     }
 
     void PSO::publishCost()
     {
+        DLOG(INFO) << "in publishCost:";
         float cost = global_best_.cost;
         cost_pub_ = nh_.advertise<std_msgs::Float32>("cost", 1, true);
         std_msgs::Float32 cost_msg;
 
         cost_msg.data = cost;
         cost_pub_.publish(cost_msg);
+        DLOG(INFO) << "out publishCost.";
     }
 
     void PSO::findFineVelocityVec(const std::vector<float> &coarse_velocity_vec)
@@ -654,11 +659,11 @@ namespace adaptive_open_local_planner
 
     float PSO::sumJerk(const Particle &particle)
     {
-        float result = 0, distance, time_limit, start_velocity, end_velocity;
+        float result = 0, distance, time_limit, start_velocity, end_velocity, temp = 0, time_zero = 0;
         std::vector<float> para_vec;
         for (size_t i = 0; i < divided_path_.size(); i++)
         {
-            // DLOG(INFO) << "in " << i << "th divided path.";
+            // DLOG(INFO) << "in " << i << "th divided path. result is " << result;
             // set velocity
             start_velocity = particle.position_vec[i];
             end_velocity = particle.position_vec[i + 1];
@@ -675,8 +680,16 @@ namespace adaptive_open_local_planner
             }
 
             para_vec = findParameter(start_velocity, end_velocity, distance);
-            result = result + 3 * para_vec[0] * time_limit * time_limit + 2 * para_vec[1] * time_limit;
+            // DLOG(INFO) << "result is " << result;
+            // this equation not right, since jerk here could be negative.
+            // temp = 3 * para_vec[0] * time_limit * time_limit + 2 * para_vec[1] * time_limit;
+            time_zero = -para_vec[1] / para_vec[0] / 3;
+            temp = std::abs(para_vec[1] * time_zero) + std::abs((time_limit - time_zero) * (3 * para_vec[0] * time_limit + para_vec[1]));
+            // DLOG(INFO) << "temp is " << temp;
+            result = result + temp;
+            // DLOG(INFO) << "in sumJerk, result is " << result << " time limit is " << time_limit << " A is " << para_vec[0] << " B is " << para_vec[1] << " start velocity is " << start_velocity << " end velocity is " << end_velocity << " distance is " << distance << " 3 * para_vec[0] * time_limit * time_limit is " << 3 * para_vec[0] * time_limit * time_limit << " 2 * para_vec[1] * time_limit is " << 2 * para_vec[1] * time_limit;
         }
+
         return result;
     }
 
@@ -684,9 +697,6 @@ namespace adaptive_open_local_planner
     {
         std::vector<float> result;
         float A, B, C, D, time_limit;
-        // DLOG(INFO) << "in " << i << "th divided path.";
-        // set velocity
-        // set distance
         // set time: t1=2s/(v0+v1)
         if ((start_velocity + end_velocity) != 0)
         {
@@ -712,7 +722,7 @@ namespace adaptive_open_local_planner
 
     void PSO::plotCost()
     {
-        // DLOG(INFO) << "in plot";
+        DLOG(INFO) << "in plot";
         // plot velocity
         matplotlibcpp::figure();
         // matplotlibcpp::ion();
@@ -734,6 +744,55 @@ namespace adaptive_open_local_planner
         std::string time_mark = std::to_string(now);
         matplotlibcpp::save(path + file_name + time_mark + ".png");
 
-        // DLOG(INFO) << "out plot";
+        DLOG(INFO) << "out plot";
+    }
+
+    float PSO::handleJerkConstraintsForFitnessFunction(const Particle &particle)
+    {
+        float total_cost = 0, jerk_limit = 1;
+        // jerk=6*A*t+2*B, extreme value is t=0, and t=time limit.
+        float distance, time_limit, start_velocity, end_velocity, extreme_value_lower = 0, extreme_value_upper = 0;
+        std::vector<float> para_vec;
+        for (size_t i = 0; i < divided_path_.size(); i++)
+        {
+            // DLOG(INFO) << "in " << i << "th divided path.";
+            // set velocity
+            start_velocity = particle.position_vec[i];
+            end_velocity = particle.position_vec[i + 1];
+            // set distance
+            distance = PlannerHelpers::getDistance(divided_path_[i]);
+            // set time: t1=2s/(v0+v1)
+            if ((start_velocity + end_velocity) != 0)
+            {
+                time_limit = 2 * distance / (start_velocity + end_velocity);
+            }
+            else
+            {
+                DLOG(FATAL) << "start velocity + end velocity is zero!!!";
+            }
+
+            para_vec = findParameter(start_velocity, end_velocity, distance);
+            // find extreme value;
+            if (para_vec[0] > 0)
+            {
+                extreme_value_lower = 2 * para_vec[1];
+                extreme_value_upper = 6 * para_vec[0] * time_limit + 2 * para_vec[1];
+            }
+            else
+            {
+                extreme_value_upper = 2 * para_vec[1];
+                extreme_value_lower = 6 * para_vec[0] * time_limit + 2 * para_vec[1];
+            }
+            DLOG(INFO) << "A is " << para_vec[0] << " B is " << para_vec[1] << " time limit is " << time_limit << " extreme_value_upper is " << extreme_value_upper << " extreme_value_lower is " << extreme_value_lower;
+            DLOG(INFO) << "total cost at first is " << total_cost << " distance is " << distance << " start_velocity is " << start_velocity << " end_velocity is " << end_velocity;
+            // lower limit
+            total_cost = total_cost + std::abs(std::min(extreme_value_lower + jerk_limit, (float)0));
+            DLOG(INFO) << "total cost after lower limit is " << total_cost;
+            // upper limit
+            total_cost = total_cost + std::abs(std::max(extreme_value_upper - jerk_limit, (float)0));
+            DLOG(INFO) << "total cost after upper limit is " << total_cost;
+        }
+
+        return total_cost;
     }
 }

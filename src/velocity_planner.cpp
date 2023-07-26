@@ -22,11 +22,13 @@ namespace adaptive_open_local_planner
 
     std::vector<Waypoint> VelocityPlanner::planVelocity(const std::vector<Waypoint> &local_path, const float &current_speed)
     {
+        DLOG(INFO) << "in planVelocity:";
         current_vehicle_speed_ = current_speed;
         std::vector<std::vector<Waypoint>> divided_path;
         dividePath(local_path, divided_path);
         findVelocityBoundary(divided_path);
         pso_ptr_.reset(new PSO(divided_path, linear_velocity_boundary_, min_linear_acceleration_, max_linear_acceleration_, weighting_, personal_learning_rate_, global_learning_rate_, cost_difference_boundary_, max_interation_, number_of_particle_));
+        DLOG(INFO) << "out planVelocity.";
         return pso_ptr_->evaluate();
     }
 
@@ -53,7 +55,7 @@ namespace adaptive_open_local_planner
                     if (j != i)
                     {
                         divided_path.emplace_back(PlannerHelpers::extractVector(local_path, i, j));
-                        // DLOG(INFO) << "divided path. i is " << i << " j is " << j << " current_delta_curvature is " << current_delta_curvature << " delta_curvature_global is " << delta_curvature_global;
+                        DLOG(INFO) << "divided path. i is " << i << " j is " << j << " current_delta_curvature is " << current_delta_curvature << " delta_curvature_global is " << delta_curvature_global << " start point is " << local_path[i].x << " " << local_path[i].y << " end point is " << local_path[j].x << " " << local_path[j].y;
                         i = j;
 
                         break;
@@ -170,37 +172,39 @@ namespace adaptive_open_local_planner
                 limit_pair.second = current_vehicle_speed_;
                 // DLOG(INFO) << "max linear velocity is " << limit_pair.second;
                 limit_pair.first = current_vehicle_speed_;
+                linear_velocity_boundary_.emplace_back(limit_pair);
+                // continue;
+            }
+            else
+            {
+                //  calculate speed limit
+                current_curvature = PlannerHelpers::CalculateCurvature(divided_path[i][0], divided_path[i][1]);
+                if (current_curvature != 0)
+                {
+                    // DLOG_IF(FATAL, current_curvature < 0) << "current_curvature is smaller than zero!!";
+                    upper_limit = std::sqrt(max_angular_acceleration_ / std::abs(current_curvature));
+                    DLOG_IF(INFO, std::isnan(upper_limit)) << "upper limit calculated is " << upper_limit << " max_angular_acceleration_ is " << max_angular_acceleration_ << " current_curvature is " << current_curvature;
+                }
+                else
+                {
+                    DLOG(WARNING) << "current_curvature is zero!!!";
+                    // set to a large value
+                    upper_limit = 100000;
+                }
+                // compare with pre set limit
+                if (upper_limit < max_linear_velocity_)
+                {
+                    limit_pair.second = upper_limit;
+                }
+                else
+                {
+                    limit_pair.second = max_linear_velocity_;
+                }
+                // DLOG(INFO) << "max linear velocity is " << limit_pair.second;
+                limit_pair.first = min_linear_velocity_;
 
                 linear_velocity_boundary_.emplace_back(limit_pair);
-                continue;
             }
-            //  calculate speed limit
-            current_curvature = PlannerHelpers::CalculateCurvature(divided_path[i][0], divided_path[i][1]);
-            if (current_curvature != 0)
-            {
-                // DLOG_IF(FATAL, current_curvature < 0) << "current_curvature is smaller than zero!!";
-                upper_limit = std::sqrt(max_angular_acceleration_ / std::abs(current_curvature));
-                DLOG_IF(INFO, std::isnan(upper_limit)) << "upper limit calculated is " << upper_limit << " max_angular_acceleration_ is " << max_angular_acceleration_ << " current_curvature is " << current_curvature;
-            }
-            else
-            {
-                DLOG(WARNING) << "current_curvature is zero!!!";
-                // set to a large value
-                upper_limit = 100000;
-            }
-            // compare with pre set limit
-            if (upper_limit < max_linear_velocity_)
-            {
-                limit_pair.second = upper_limit;
-            }
-            else
-            {
-                limit_pair.second = max_linear_velocity_;
-            }
-            // DLOG(INFO) << "max linear velocity is " << limit_pair.second;
-            limit_pair.first = min_linear_velocity_;
-
-            linear_velocity_boundary_.emplace_back(limit_pair);
 
             // check if this is the last divided path
             if (i == (divided_path.size() - 1))

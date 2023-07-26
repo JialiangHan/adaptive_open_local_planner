@@ -167,17 +167,17 @@ namespace adaptive_open_local_planner
       weighting = 0.5;
       personal_learning_rate = 0.1;
       global_learning_rate = 0.1;
-      cost_difference_boundary = 0.000001;
+      cost_difference_boundary = 1;
       max_interation = 10000;
       // speed limit
-      max_linear_velocity = 0.5;
+      max_linear_velocity = 5;
       min_linear_velocity = 0;
       max_angular_acceleration = 100;
       min_angular_acceleration = -100;
       max_linear_acceleration = 4;
       min_linear_acceleration = -4;
 
-      path_divide_factor = 0.5;
+      path_divide_factor = 0.7;
 
       number_of_particle = 1000;
     }
