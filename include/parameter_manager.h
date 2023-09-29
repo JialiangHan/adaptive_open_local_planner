@@ -167,8 +167,8 @@ namespace adaptive_open_local_planner
       weighting = 0.5;
       personal_learning_rate = 0.1;
       global_learning_rate = 0.1;
-      cost_difference_boundary = 1;
-      max_interation = 10000;
+      cost_difference_boundary = 0.00001;
+      max_interation = 100;
       // speed limit
       max_linear_velocity = 5;
       min_linear_velocity = 0;

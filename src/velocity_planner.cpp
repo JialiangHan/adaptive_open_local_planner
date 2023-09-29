@@ -55,7 +55,7 @@ namespace adaptive_open_local_planner
                     if (j != i)
                     {
                         divided_path.emplace_back(PlannerHelpers::extractVector(local_path, i, j));
-                        DLOG(INFO) << "divided path. i is " << i << " j is " << j << " current_delta_curvature is " << current_delta_curvature << " delta_curvature_global is " << delta_curvature_global << " start point is " << local_path[i].x << " " << local_path[i].y << " end point is " << local_path[j].x << " " << local_path[j].y;
+                        // DLOG(INFO) << "divided path. i is " << i << " j is " << j << " current_delta_curvature is " << current_delta_curvature << " delta_curvature_global is " << delta_curvature_global << " start point is " << local_path[i].x << " " << local_path[i].y << " end point is " << local_path[j].x << " " << local_path[j].y;
                         i = j;
 
                         break;

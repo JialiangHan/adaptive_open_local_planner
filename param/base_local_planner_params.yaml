@@ -71,7 +71,7 @@ AdaptiveOpenLocalPlannerROS:
   weighting: 0.1
   personal_learning_rate: 0.1
   global_learning_rate: 0.1
-  cost_difference_boundary: 1
+  cost_difference_boundary: 0.1
   max_interation: 10000
   max_linear_velocity: 1
   min_linear_velocity: 0

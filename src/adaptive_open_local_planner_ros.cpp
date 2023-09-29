@@ -99,7 +99,7 @@ namespace adaptive_open_local_planner
             // set initialized flag
             initialized_ = true;
 
-            DLOG(INFO) << "adaptive_open_local_planner plugin initialized.";
+            // DLOG(INFO) << "adaptive_open_local_planner plugin initialized.";
         }
     }
 
@@ -722,7 +722,6 @@ namespace adaptive_open_local_planner
         DLOG_IF(FATAL, closest_index < 0) << "FATAL: closest_index smaller than zero!!!";
         DLOG_IF(FATAL, closest_index >= best_path.size()) << "FATAL: closest_index larger than best_path size!!!";
         // change to velocity planner
-
         waypoint_vec = velocity_planner_ptr_->planVelocity(best_path, current_state_in_map_frame_.speed);
         if ((closest_index + 1) < waypoint_vec.size())
         {
@@ -989,7 +988,7 @@ namespace adaptive_open_local_planner
         matplotlibcpp::clf();
         std::vector<std::pair<float, float>> linear_velocity_pair_vec = getLinearVelocityVec(waypoint_vec);
         std::vector<std::pair<float, float>> jerk_pair_vec = getJerk(waypoint_vec);
-        // DLOG(INFO) << "jerk vec size is " << jerk_vec.size();
+        DLOG(INFO) << "jerk vec size is " << jerk_pair_vec.size();
         std::vector<std::string> title_vec = {"linear velocity", "jerk"};
         for (size_t i = 0; i < title_vec.size(); i++)
         {
@@ -1009,7 +1008,6 @@ namespace adaptive_open_local_planner
             matplotlibcpp::plot(x_vec, y_vec, {{"label", "raw path"}});
 
             matplotlibcpp::legend({{"loc", "upper right"}});
-            // DLOG(INFO) << "Plot curvature for topic: " << curvature_vec.first;
 
             matplotlibcpp::title(title_vec[i]);
             matplotlibcpp::ylabel(title_vec[i]);
