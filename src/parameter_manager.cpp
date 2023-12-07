@@ -70,6 +70,10 @@ namespace adaptive_open_local_planner
     nh.getParam("path_divide_factor", path_divide_factor);
 
     nh.getParam("number_of_particle", number_of_particle);
+
+    nh.getParam("control_delay", control_delay);
+    nh.getParam("rho", rho);
+    nh.getParam("rhoN", rhoN);
   }
 
 } // namespace adaptive_open_local_planner

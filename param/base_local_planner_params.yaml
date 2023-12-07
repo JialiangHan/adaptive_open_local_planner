@@ -81,3 +81,7 @@ AdaptiveOpenLocalPlannerROS:
   min_linear_acceleration: -5
 
   path_divide_factor: 0.4
+
+  control_delay: 1
+  rho: 1
+  rhoN: 1

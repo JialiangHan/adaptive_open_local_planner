@@ -37,6 +37,7 @@ FIND_PACKAGE(Gflags)
 find_package(Python3 COMPONENTS Interpreter Development NumPy)
 find_package(PythonLibs 3.0 REQUIRED)
 find_package(Eigen3 REQUIRED)
+find_package(OsqpEigen REQUIRED)
 ## Generate added messages and services with any dependencies listed here
 generate_messages(
   DEPENDENCIES
@@ -90,6 +91,7 @@ add_library(adaptive_open_local_planner
    src/path_evaluator.cpp
    src/velocity_planner.cpp
    src/pso.cpp
+   src/mpc.cpp
 )
 
 
@@ -98,6 +100,7 @@ target_link_libraries(adaptive_open_local_planner
    ${catkin_LIBRARIES}
        glog::glog 
        ${PYTHON_LIBRARIES}   
+       OsqpEigen::OsqpEigen 
 )
 
 

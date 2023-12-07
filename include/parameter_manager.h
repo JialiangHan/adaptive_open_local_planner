@@ -30,7 +30,7 @@ namespace adaptive_open_local_planner
     std::string cmd_vel_topic;
 
     double planning_frequency;
-
+    double control_delay;
     // Parameters
     double max_speed;               // max speed that planner should not exceed
     double max_local_plan_distance; // length of local trajectory roll outs
@@ -92,6 +92,9 @@ namespace adaptive_open_local_planner
     float min_angular_acceleration;
     float max_linear_acceleration;
     float min_linear_acceleration;
+    int predicted_length;
+    float rho;
+    float rhoN;
     // factor to control how much sub path you want to divide, it is K in the paper, should be larger than zero, smaller than one.
     float path_divide_factor;
     int number_of_particle;
@@ -111,7 +114,8 @@ namespace adaptive_open_local_planner
       box_obstacle_rviz_topic = "box_obstacle_rviz";
       cmd_vel_topic = "cmd_vel";
 
-      planning_frequency = 1;
+      control_delay = 1;
+      planning_frequency = 10;
 
       // Parameters
       max_speed = 2;                // max speed that planner should not exceed
@@ -128,7 +132,7 @@ namespace adaptive_open_local_planner
 
       horizontal_safety_distance = 0.3;
       vertical_safety_distance = 0.3;
-      max_steer_angle = 0.5;
+      max_steer_angle = 10;
       min_speed = 0.2;
       lateral_skip_distance = 10;
 
@@ -180,6 +184,9 @@ namespace adaptive_open_local_planner
       path_divide_factor = 0.7;
 
       number_of_particle = 1000;
+
+      rho = 1;
+      rhoN = 1;
     }
 
     /**

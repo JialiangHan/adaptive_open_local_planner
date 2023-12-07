@@ -60,7 +60,7 @@ namespace adaptive_open_local_planner
                 cost_topic = "cost";
                 path_evaluator_ptr_.reset(new PathEvaluator(path_topic, cmd_topic, jerk_topic, cost_topic));
             }
-
+            mpc_.initialize(params_.wheelbase_length, 1 / params_.planning_frequency, params_.control_delay, params_.predicted_length, params_.rho, params_.rhoN, params_.max_linear_velocity, params_.max_linear_acceleration, params_.max_steer_angle, params_.max_angular_acceleration);
             // DLOG(INFO) << "max linear velocity is " << params_.max_linear_velocity;
 
             velocity_planner_ptr_.reset(new VelocityPlanner(params_.path_divide_factor, params_.max_linear_velocity, params_.min_linear_velocity, params_.max_angular_acceleration, params_.min_angular_acceleration, params_.max_linear_acceleration, params_.min_linear_acceleration, params_.weighting, params_.personal_learning_rate, params_.global_learning_rate, params_.cost_difference_boundary, params_.max_interation, params_.number_of_particle));
@@ -187,12 +187,18 @@ namespace adaptive_open_local_planner
         std::vector<PathCost> trajectory_costs;
         doOneStepStatic(roll_outs, extracted_path, trajectory_costs, best_path);
         float velocity, steering_angle_rate;
-        calculateVelocityAndSteeringAngleRate(best_path, velocity, steering_angle_rate);
-
+        std::vector<Waypoint> waypoint_vec = calculateVelocityAndSteeringAngleRate(best_path, velocity, steering_angle_rate);
+        std::vector<Eigen::Vector4d> trajectory = convertTrajectory(waypoint_vec);
+        mpc_.inputRefTrajectory(trajectory);
+        Eigen::Vector4d current_state(current_state_in_map_frame_.x, current_state_in_map_frame_.y, current_state_in_map_frame_.yaw, current_state_in_map_frame_.speed);
+        Eigen::Vector2d control_vec = mpc_.output(current_state);
         goalCheck();
-        cmd_vel.twist.linear.x = velocity;
+        cmd_vel.twist.linear.x = current_state_in_map_frame_.speed + control_vec[0] * 1 / params_.planning_frequency;
         cmd_vel.twist.linear.y = 0;
-        cmd_vel.twist.angular.z = steering_angle_rate;
+        cmd_vel.twist.angular.z = control_vec[1] * params_.planning_frequency;
+        // cmd_vel.twist.linear.x = velocity;
+        // cmd_vel.twist.linear.y = 0;
+        // cmd_vel.twist.angular.z = steering_angle_rate;
         DLOG(INFO) << "speed command is " << velocity << " steering angle command is " << steering_angle_rate;
         return true;
     }
@@ -707,7 +713,7 @@ namespace adaptive_open_local_planner
         }
     }
 
-    void AdaptiveOpenLocalPlannerROS::calculateVelocityAndSteeringAngleRate(const std::vector<Waypoint> &best_path, float &velocity, float &steering_angle_rate)
+    std::vector<Waypoint> AdaptiveOpenLocalPlannerROS::calculateVelocityAndSteeringAngleRate(const std::vector<Waypoint> &best_path, float &velocity, float &steering_angle_rate)
     {
         DLOG(INFO) << "in calculateVelocityAndSteeringAngleRate:";
         std::vector<Waypoint> waypoint_vec;
@@ -751,6 +757,7 @@ namespace adaptive_open_local_planner
         // velocity = best_path[closest_index].speed;
         // steering_angle_rate = calculateAngleVelocity(best_path[closest_index], best_path[closest_index + 1]);
         DLOG(INFO) << "out calculateVelocityAndSteeringAngleRate.";
+        return waypoint_vec;
     }
 
     void AdaptiveOpenLocalPlannerROS::goalCheck()

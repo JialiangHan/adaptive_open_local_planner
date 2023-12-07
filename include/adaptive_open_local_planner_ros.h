@@ -39,7 +39,7 @@
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 // costmap
 #include <costmap_2d/costmap_2d_ros.h>
-
+#include "mpc.h"
 #include <ctime>
 namespace adaptive_open_local_planner
 {
@@ -121,7 +121,7 @@ namespace adaptive_open_local_planner
          * @param velocity
          * @param steering_angle_rate
          */
-        void calculateVelocityAndSteeringAngleRate(const std::vector<Waypoint> &best_path, float &velocity, float &steering_angle_rate);
+        std::vector<Waypoint> calculateVelocityAndSteeringAngleRate(const std::vector<Waypoint> &best_path, float &velocity, float &steering_angle_rate);
 
         void plot(const std::vector<Waypoint> &waypoint_vec);
         /**
@@ -203,6 +203,8 @@ namespace adaptive_open_local_planner
 
         double calculateAngleVelocity(const Waypoint &current_point, const Waypoint &next_point);
 
+        std::vector<Eigen::Vector4d> convertTrajectory(const std::vector<Waypoint> &waypoint_vec);
+
     private:
         // Definition of member variables
 
@@ -256,6 +258,8 @@ namespace adaptive_open_local_planner
         std::shared_ptr<PathEvaluator> path_evaluator_ptr_;
 
         std::shared_ptr<VelocityPlanner> velocity_planner_ptr_;
+
+        MPC mpc_;
 
     public:
         EIGEN_MAKE_ALIGNED_OPERATOR_NEW
