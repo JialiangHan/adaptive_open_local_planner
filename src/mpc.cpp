@@ -18,6 +18,7 @@ namespace adaptive_open_local_planner
         a_max_ = a_max;
         steering_angle_max_ = steering_angle_max;
         steering_angle_rate_max_ = steering_angle_rate_max;
+        DLOG(INFO) << "MPC initialized.";
     }
 
     bool MPC::inputRefTrajectory(const std::vector<VectorX> &ref_trajectory)
@@ -28,6 +29,7 @@ namespace adaptive_open_local_planner
 
     VectorU MPC::output(const VectorX &x0_observe)
     {
+        DLOG(INFO) << "in output";
         VectorU output;
         int status = solveMPC(x0_observe);
         if (status != 1)
@@ -45,6 +47,7 @@ namespace adaptive_open_local_planner
     // looks good
     void MPC::setWeighting()
     {
+        DLOG(INFO) << "in setWeighting";
         // set size of sparse matrices
         Qx_.resize(number_of_state_ * N_, number_of_state_ * N_);
         // stage cost
@@ -205,8 +208,10 @@ namespace adaptive_open_local_planner
     // looks good
     int MPC::findClosestIndex(const std::vector<VectorX> &ref_trajectory, const double &distance)
     {
+        // DLOG(INFO) << "in findClosestIndex";
         int index = 0;
         double path_length_pre, path_length_succ;
+        // DLOG(INFO) << "distance is " << distance;
         for (size_t i = 0; i < ref_trajectory.size() - 1; i++)
         {
             path_length_pre = findLength(ref_trajectory, i);
@@ -215,11 +220,12 @@ namespace adaptive_open_local_planner
             {
                 index = i;
             }
+            // DLOG(INFO) << i << "th pre length is " << path_length_pre << " succ length is " << path_length_succ;
         }
-        if (index == 0)
-        {
-            DLOG(WARNING) << "index equal to zero!!!Impossible";
-        }
+        // if (index == 0)
+        // {
+        //     DLOG(WARNING) << "index equal to zero!!!Impossible";
+        // }
 
         return index;
     }
@@ -379,6 +385,7 @@ namespace adaptive_open_local_planner
     // looks good
     int MPC::solveMPC(const VectorX &x0_observe)
     {
+        DLOG(INFO) << "in solveMPC";
         historyInput_.clear();
         historyInput_ = predictInput_;
 
@@ -417,45 +424,73 @@ namespace adaptive_open_local_planner
     // looks good
     int MPC::solveQP(const Eigen::SparseMatrix<double> &hessian, const Eigen::Ref<Eigen::VectorXd> &gradient, const Eigen::SparseMatrix<double> &linearMatrix, const Eigen::Ref<Eigen::VectorXd> &lowerBound, const Eigen::Ref<Eigen::VectorXd> &upperBound, const VectorX &x0)
     {
+        DLOG(INFO) << "in solveQP";
         // instantiate the solver
         OsqpEigen::Solver solver;
         // settings
-        // solver.settings()->setVerbosity(false);
+        solver.settings()->setVerbosity(false);
         solver.settings()->setWarmStart(true);
         int n_cons = 4; // v a steering_angle steering_angle_rate
         // set the initial data of the QP solver
         solver.data()->setNumberOfVariables(number_of_control_ * N_);
         solver.data()->setNumberOfConstraints(n_cons * N_);
         if (!solver.data()->setHessianMatrix(hessian))
+        {
+            DLOG(INFO) << "set hessian failed.";
             return 0;
+        }
+
         if (!solver.data()->setGradient(gradient))
+        {
+            DLOG(INFO) << "set hessian failed.";
             return 0;
+        }
         if (!solver.data()->setLinearConstraintsMatrix(linearMatrix))
+        {
+            DLOG(INFO) << "set LinearConstraintsMatrix failed.";
             return 0;
+        }
         if (!solver.data()->setLowerBound(lowerBound))
+        {
+            DLOG(INFO) << "set LowerBound failed.";
             return 0;
+        }
         if (!solver.data()->setUpperBound(upperBound))
+        {
+            DLOG(INFO) << "set UpperBound failed.";
             return 0;
+        }
 
         // instantiate the solver
         if (!solver.initSolver())
+        {
+            DLOG(INFO) << "initSolver failed.";
             return 0;
+        }
 
         // solve the QP problem
         if (!solver.solve())
+        {
+            DLOG(INFO) << "solve QP failed.";
             return 0;
-
+        }
+        DLOG(INFO) << "solve QP success.";
         Eigen::VectorXd sol = solver.getSolution();
+        // DLOG(INFO) << "solve QP success.";
         Eigen::MatrixXd solMat = Eigen::Map<const Eigen::MatrixXd>(sol.data(), number_of_control_, N_);
+        // DLOG(INFO) << "solve QP success.";
         Eigen::VectorXd solState = BB_ * sol + AA_ * x0 + gg_;
+        // DLOG(INFO) << "solve QP success.";
         Eigen::MatrixXd predictMat = Eigen::Map<const Eigen::MatrixXd>(solState.data(), number_of_state_, N_);
-
+        // DLOG(INFO) << "solve QP success.";
+        DLOG(INFO) << "predictInput_ size is " << predictInput_.size();
+        predictInput_.clear();
         for (int i = 0; i < N_; ++i)
         {
-            predictInput_[i] = solMat.col(i);
-            // predictState_[i] = predictMat.col(i);
+            predictInput_.emplace_back(solMat.col(i));
+            // predictInput_[i] = solMat.col(i);
         }
-
+        // DLOG(INFO) << "solve QP success.";
         return 1;
     }
     // looks good

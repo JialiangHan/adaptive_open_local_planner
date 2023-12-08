@@ -715,7 +715,7 @@ namespace adaptive_open_local_planner
 
     std::vector<Waypoint> AdaptiveOpenLocalPlannerROS::calculateVelocityAndSteeringAngleRate(const std::vector<Waypoint> &best_path, float &velocity, float &steering_angle_rate)
     {
-        DLOG(INFO) << "in calculateVelocityAndSteeringAngleRate:";
+        // DLOG(INFO) << "in calculateVelocityAndSteeringAngleRate:";
         std::vector<Waypoint> waypoint_vec;
         Waypoint car_pos;
         car_pos.x = current_state_in_map_frame_.x;
@@ -733,13 +733,13 @@ namespace adaptive_open_local_planner
         {
             velocity = waypoint_vec[closest_index + 1].speed;
             steering_angle_rate = waypoint_vec[closest_index].angular_speed;
-            DLOG(INFO) << "closest_index is " << closest_index << " velocity is " << velocity << " angular speed is " << steering_angle_rate;
+            // DLOG(INFO) << "closest_index is " << closest_index << " velocity is " << velocity << " angular speed is " << steering_angle_rate;
         }
         else
         {
             velocity = waypoint_vec[closest_index].speed;
             steering_angle_rate = waypoint_vec[closest_index].angular_speed;
-            DLOG(INFO) << "closest_index is " << closest_index << " velocity is " << velocity << " angular speed is " << steering_angle_rate;
+            // DLOG(INFO) << "closest_index is " << closest_index << " velocity is " << velocity << " angular speed is " << steering_angle_rate;
         }
         // DLOG(INFO) << "current vehicle speed is " << current_state_in_map_frame_.speed;
 
@@ -749,14 +749,14 @@ namespace adaptive_open_local_planner
             {
                 for (const auto waypoint : waypoint_vec)
                 {
-                    DLOG(INFO) << "velocity is " << waypoint.speed;
+                    // DLOG(INFO) << "velocity is " << waypoint.speed;
                 }
             }
         }
         plot(waypoint_vec);
         // velocity = best_path[closest_index].speed;
         // steering_angle_rate = calculateAngleVelocity(best_path[closest_index], best_path[closest_index + 1]);
-        DLOG(INFO) << "out calculateVelocityAndSteeringAngleRate.";
+        // DLOG(INFO) << "out calculateVelocityAndSteeringAngleRate.";
         return waypoint_vec;
     }
 
@@ -981,7 +981,7 @@ namespace adaptive_open_local_planner
         {
             DLOG(WARNING) << "angle diff larger than M_PI_2 or smaller than M_PI_2, angle diff is " << angle_diff;
         }
-        DLOG(INFO) << "next point heading is " << next_point.heading << " current point heading is " << current_point.heading;
+        // DLOG(INFO) << "next point heading is " << next_point.heading << " current point heading is " << current_point.heading;
         angle_velocity = angle_diff / dt;
         return angle_velocity;
     }
@@ -995,7 +995,7 @@ namespace adaptive_open_local_planner
         matplotlibcpp::clf();
         std::vector<std::pair<float, float>> linear_velocity_pair_vec = getLinearVelocityVec(waypoint_vec);
         std::vector<std::pair<float, float>> jerk_pair_vec = getJerk(waypoint_vec);
-        DLOG(INFO) << "jerk vec size is " << jerk_pair_vec.size();
+        // DLOG(INFO) << "jerk vec size is " << jerk_pair_vec.size();
         std::vector<std::string> title_vec = {"linear velocity", "jerk"};
         for (size_t i = 0; i < title_vec.size(); i++)
         {
@@ -1060,6 +1060,22 @@ namespace adaptive_open_local_planner
         std::vector<std::pair<float, float>> jerk_vec = velocity_planner_ptr_->findJerk();
         // DLOG(INFO) << "out getJerk";
         return jerk_vec;
+    }
+
+    std::vector<Eigen::Vector4d> AdaptiveOpenLocalPlannerROS::convertTrajectory(const std::vector<Waypoint> &waypoint_vec)
+    {
+        std::vector<Eigen::Vector4d> vec;
+        Eigen::Vector4d waypoint;
+        for (const auto &element : waypoint_vec)
+        {
+            waypoint[0] = element.x;
+            waypoint[1] = element.y;
+            waypoint[2] = element.heading;
+            waypoint[3] = element.speed;
+            vec.emplace_back(waypoint);
+        }
+
+        return vec;
     }
 
 } // end namespace adaptive_open_local_planner

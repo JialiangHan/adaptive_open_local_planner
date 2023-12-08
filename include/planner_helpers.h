@@ -41,9 +41,7 @@ namespace adaptive_open_local_planner
         static bool getRelativeInfo(const std::vector<Waypoint> &path, const Waypoint &current_pos, RelativeInfo &info);
         static void predictConstantTimeCostForTrajectory(std::vector<Waypoint> &path, const VehicleState &current_state_in_map_frame);
         static double getExactDistanceOnTrajectory(const std::vector<Waypoint> &trajectory, const RelativeInfo &p1, const RelativeInfo &p2);
-        static double checkTrajectoryForCollision(const std::vector<Waypoint> &trajectory, const std::vector<CircleObstacle> &circle_obstacles, const std::vector<BoxObstacle> &box_obstacles,
-                                                  const double &safety_radius, const double &vehicle_width, const double &vehicle_length, const double &wheelbase_length,
-                                                  const double &horizontal_safety_distance, const double &vertical_safety_distance);
+
         static void calculateTransitionCosts(std::vector<PathCost> &trajectory_costs, const int &curr_trajectory_index, const double &roll_out_density);
         static void calculateLateralAndLongitudinalCostsStatic(std::vector<PathCost> &trajectory_costs, const std::vector<std::vector<Waypoint>> &roll_outs,
                                                                const std::vector<Waypoint> &extracted_path, std::vector<Waypoint> &contour_points,

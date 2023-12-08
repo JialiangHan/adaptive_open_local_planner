@@ -22,13 +22,13 @@ namespace adaptive_open_local_planner
 
     std::vector<Waypoint> VelocityPlanner::planVelocity(const std::vector<Waypoint> &local_path, const float &current_speed)
     {
-        DLOG(INFO) << "in planVelocity:";
+        // DLOG(INFO) << "in planVelocity:";
         current_vehicle_speed_ = current_speed;
         std::vector<std::vector<Waypoint>> divided_path;
         dividePath(local_path, divided_path);
         findVelocityBoundary(divided_path);
         pso_ptr_.reset(new PSO(divided_path, linear_velocity_boundary_, min_linear_acceleration_, max_linear_acceleration_, weighting_, personal_learning_rate_, global_learning_rate_, cost_difference_boundary_, max_interation_, number_of_particle_));
-        DLOG(INFO) << "out planVelocity.";
+        // DLOG(INFO) << "out planVelocity.";
         return pso_ptr_->evaluate();
     }
 

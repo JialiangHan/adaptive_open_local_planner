@@ -348,75 +348,7 @@ namespace adaptive_open_local_planner
         return 0;
     }
 
-    double PlannerHelpers::checkTrajectoryForCollision(const std::vector<Waypoint> &trajectory, const std::vector<CircleObstacle> &circle_obstacles, const std::vector<BoxObstacle> &box_obstacles,
-                                                       const double &safety_radius, const double &vehicle_width, const double &vehicle_length, const double &wheelbase_length,
-                                                       const double &horizontal_safety_distance, const double &vertical_safety_distance)
-    {
-        double closest_obs_distance = DBL_MAX;
-
-        for (int it = 0; it < trajectory.size(); it++)
-        {
-            for (int io = 0; io < circle_obstacles.size(); io++)
-            {
-                // first stage of check
-                double distance = hypot(trajectory[it].x - circle_obstacles[io].x, trajectory[it].y - circle_obstacles[io].y);
-                distance = distance - safety_radius - circle_obstacles[io].radius;
-                if (distance <= 0)
-                {
-                    // second stage of check
-                    Mat3 rotationMat(trajectory[it].heading - M_PI_2);
-                    Mat3 translationMat(trajectory[it].x, trajectory[it].y);
-
-                    double critical_lateral_distance = vehicle_width / 2.0 + horizontal_safety_distance;
-                    double critical_long_front_distance = wheelbase_length / 2.0 + vehicle_length / 2.0 + vertical_safety_distance;
-                    double critical_long_back_distance = vehicle_length / 2.0 + vertical_safety_distance - wheelbase_length / 2.0;
-
-                    Waypoint bottom_left;
-                    bottom_left.x = -critical_lateral_distance;
-                    bottom_left.y = -critical_long_back_distance;
-
-                    Waypoint bottom_right;
-                    bottom_right.x = critical_lateral_distance;
-                    bottom_right.y = -critical_long_back_distance;
-
-                    Waypoint top_right;
-                    top_right.x = critical_lateral_distance;
-                    top_right.y = critical_long_front_distance;
-
-                    Waypoint top_left;
-                    top_left.x = -critical_lateral_distance;
-                    top_left.y = critical_long_front_distance;
-
-                    bottom_left = rotationMat * bottom_left;
-                    bottom_left = translationMat * bottom_left;
-
-                    top_right = rotationMat * top_right;
-                    top_right = translationMat * top_right;
-
-                    bottom_right = rotationMat * bottom_right;
-                    bottom_right = translationMat * bottom_right;
-
-                    top_left = rotationMat * top_left;
-                    top_left = translationMat * top_left;
-
-                    Polygon car_polygon;
-                    car_polygon.points.push_back(bottom_left);
-                    car_polygon.points.push_back(bottom_right);
-                    car_polygon.points.push_back(top_right);
-                    car_polygon.points.push_back(top_left);
-                    car_polygon.points.push_back(bottom_left);
-
-                    if (car_polygon.BoxInsidePolygon(car_polygon, box_obstacles[io]))
-                        return -1; // collision
-                }
-                if (fabs(distance) < closest_obs_distance)
-                    closest_obs_distance = fabs(distance);
-            }
-        }
-        return closest_obs_distance;
-    }
-
-    void PlannerHelpers::calculateTransitionCosts(std::vector<PathCost> &trajectory_costs, const int &curr_trajectory_index, const double &roll_out_density)
+        void PlannerHelpers::calculateTransitionCosts(std::vector<PathCost> &trajectory_costs, const int &curr_trajectory_index, const double &roll_out_density)
     {
         for (int ic = 0; ic < trajectory_costs.size(); ic++)
         {
@@ -696,10 +628,7 @@ namespace adaptive_open_local_planner
 
             trajectory_costs[ic].cost = (priority_weight * trajectory_costs[ic].priority_cost + transition_weight * trajectory_costs[ic].transition_cost + lat_weight * trajectory_costs[ic].lateral_cost + long_weight * trajectory_costs[ic].longitudinal_cost + curvature_weight * trajectory_costs[ic].curvature_cost) /
                                         (priority_weight + transition_weight + lat_weight + long_weight + curvature_weight);
-            // trajectory_costs[ic].cost = (priority_weight*trajectory_costs[ic].priority_cost + transition_weight*trajectory_costs[ic].transition_cost + collision_weight*trajectory_costs[ic].closest_obj_cost)/3.0;
-
-            // DLOG(INFO) << "Index: " << ic                       << ", Priority: " << trajectory_costs[ic].priority_cost                       << ", Transition: " << trajectory_costs[ic].transition_cost                       << ", Lat: " << trajectory_costs[ic].lateral_cost                       << ", Long: " << trajectory_costs[ic].longitudinal_cost                       //    << ", Change: " << trajectory_costs.at(ic).lane_change_cost                       //    << ", Collision: " << trajectory_costs[ic].closest_obj_cost                       << ", Curvature: " << trajectory_costs[ic].curvature_cost                       << ", Avg: " << trajectory_costs[ic].cost;
-        }
+               }
 
         // DLOG(INFO) << "------------------------ ";
     }

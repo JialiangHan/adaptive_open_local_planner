@@ -27,17 +27,15 @@ namespace adaptive_open_local_planner
     std::string safety_box_rviz_topic;
     std::string car_footprint_rviz_topic;
     std::string box_obstacle_rviz_topic;
-    std::string cmd_vel_topic;
 
     double planning_frequency;
     double control_delay;
     // Parameters
-    double max_speed;               // max speed that planner should not exceed
     double max_local_plan_distance; // length of local trajectory roll outs
     double path_density;            // distance between waypoints of local trajectory
     int roll_outs_number;           // number of roll outs not including the center trajectory (this number should be even)
     double sampling_tip_margin;     // length of car tip margin
-    double sampling_out_margin;     // length of roll in margin (??)
+
     double roll_out_density;        // distance between adjacent trajectories
     double roll_in_speed_factor;
     double roll_in_margin;
@@ -47,18 +45,14 @@ namespace adaptive_open_local_planner
     double horizontal_safety_distance;
     double vertical_safety_distance;
     double max_steer_angle;
-    double min_speed;
+
     double lateral_skip_distance;
 
     double min_following_distance; // distance threshold for exiting following behaviour
-    double max_following_distance; // distance threshold for entering following behaviour
-    double min_distance_to_avoid;  // distance threshold for obstacle avoidance behaviour
 
     double vehicle_width;
     double vehicle_length;
     double wheelbase_length;
-    double turning_radius;
-    double safety_radius;
 
     // Smoothing Weights
     double smooth_data_weight;
@@ -69,7 +63,7 @@ namespace adaptive_open_local_planner
     double transition_weight;
     double lat_weight;
     double long_weight;
-    double collision_weight;
+
     double curvature_weight;
     double max_global_plan_lookahead_dist;
     double global_plan_prune_distance;
@@ -92,6 +86,7 @@ namespace adaptive_open_local_planner
     float min_angular_acceleration;
     float max_linear_acceleration;
     float min_linear_acceleration;
+
     int predicted_length;
     float rho;
     float rhoN;
@@ -112,18 +107,16 @@ namespace adaptive_open_local_planner
       safety_box_rviz_topic = "safety_box_rviz";
       car_footprint_rviz_topic = "car_footprint_rviz";
       box_obstacle_rviz_topic = "box_obstacle_rviz";
-      cmd_vel_topic = "cmd_vel";
 
       control_delay = 1;
       planning_frequency = 10;
 
       // Parameters
-      max_speed = 2;                // max speed that planner should not exceed
       max_local_plan_distance = 12; // length of local trajectory roll outs
       path_density = 0.3;           // distance between waypoints of local trajectory
       roll_outs_number = 8;         // number of roll outs not including the center trajectory (this number should be even)
       sampling_tip_margin = 1.2;    // length of car tip margin
-      sampling_out_margin = 5;      // length of roll in margin (??)
+
       roll_out_density = 0.3;       // distance between adjacent trajectories
       roll_in_speed_factor = 0.2;
       roll_in_margin = 6;
@@ -133,18 +126,14 @@ namespace adaptive_open_local_planner
       horizontal_safety_distance = 0.3;
       vertical_safety_distance = 0.3;
       max_steer_angle = 10;
-      min_speed = 0.2;
+
       lateral_skip_distance = 10;
 
-      min_following_distance = 5;  // distance threshold for exiting following behaviour
-      max_following_distance = 10; // distance threshold for entering following behaviour
-      min_distance_to_avoid = 8;   // distance threshold for obstacle avoidance behaviour
+      min_following_distance = 5; // distance threshold for exiting following behaviour
 
       vehicle_width = 1.25;
       vehicle_length = 1.8;
       wheelbase_length = 1.006;
-      turning_radius = 1.5;
-      safety_radius = 1.5;
 
       // Smoothing Weights
       smooth_data_weight = 0.45;
@@ -155,7 +144,7 @@ namespace adaptive_open_local_planner
       transition_weight = 0.9;
       lat_weight = 1.5;
       long_weight = 1;
-      collision_weight = 2;
+
       curvature_weight = 1.2;
 
       max_global_plan_lookahead_dist = 3.0;
@@ -184,7 +173,7 @@ namespace adaptive_open_local_planner
       path_divide_factor = 0.7;
 
       number_of_particle = 1000;
-
+      predicted_length = 20;
       rho = 1;
       rhoN = 1;
     }

@@ -43,7 +43,7 @@ namespace adaptive_open_local_planner
 
     std::vector<Waypoint> PSO::evaluate()
     {
-        DLOG(INFO) << "in evaluate:";
+        // DLOG(INFO) << "in evaluate:";
         std::vector<float> linear_velocity_vec;
         std::vector<float> angular_velocity_vec;
         std::vector<std::vector<float>> velocity_vec;
@@ -51,11 +51,11 @@ namespace adaptive_open_local_planner
         {
             updateSwarm();
             updateGlobalBest();
-            DLOG(INFO) << "in " << iter << " th interation.current global best cost " << global_best_.cost << " previous global best cost is " << prev_global_best_.cost << " cost difference boundary is " << cost_difference_boundary_;
+            // DLOG(INFO) << "in " << iter << " th interation.current global best cost " << global_best_.cost << " previous global best cost is " << prev_global_best_.cost << " cost difference boundary is " << cost_difference_boundary_;
             // end condition
             if (std::abs(global_best_.cost - prev_global_best_.cost) <= cost_difference_boundary_)
             {
-                DLOG(INFO) << "current global best cost is " << global_best_.cost << " previous global best cost is " << prev_global_best_.cost << " difference is smaller than preset value: " << cost_difference_boundary_ << " current iteration number is " << iter;
+                // DLOG(INFO) << "current global best cost is " << global_best_.cost << " previous global best cost is " << prev_global_best_.cost << " difference is smaller than preset value: " << cost_difference_boundary_ << " current iteration number is " << iter;
                 break;
             }
         }
@@ -68,14 +68,14 @@ namespace adaptive_open_local_planner
         publishJerk();
         findAngularVelocity();
         plotCost();
-        DLOG(INFO) << "out evaluate.";
+        // DLOG(INFO) << "out evaluate.";
         return convertDividedPathToFullPath();
         // return velocity_vec;
     }
 
     void PSO::findAngularVelocity()
     {
-        DLOG(INFO) << "in findAngularVelocity:";
+        // DLOG(INFO) << "in findAngularVelocity:";
         findFineVelocityVec(global_best_.position_vec);
 
         float angular_velocity = 0, angle_diff, delta_time, delta_distance;
@@ -97,7 +97,7 @@ namespace adaptive_open_local_planner
 
         // }
 
-        DLOG(INFO) << "out findAngularVelocity";
+        // DLOG(INFO) << "out findAngularVelocity";
         // return angular_velocity_vec;
     }
 
@@ -109,7 +109,7 @@ namespace adaptive_open_local_planner
 
     void PSO::updateParticle(Particle &particle)
     {
-        DLOG(INFO) << "in updateParticle";
+        // DLOG(INFO) << "in updateParticle";
         float r1 = static_cast<float>(rand()) / static_cast<float>(RAND_MAX), r2 = static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
 
         for (uint index = 0; index < particle.velocity_vec.size(); index++)
@@ -129,12 +129,12 @@ namespace adaptive_open_local_planner
             particle.personal_best.position_vec = particle.position_vec;
             particle.personal_best.cost = particle.cost;
         }
-        DLOG(INFO) << "out updateParticle";
+        // DLOG(INFO) << "out updateParticle";
     }
     // this function might be changed due to cost function is changed.
     void PSO::updateParticleToVelocityBoundary(Particle &particle)
     {
-        DLOG(INFO) << "in updateParticleToVelocityBoundary";
+        // DLOG(INFO) << "in updateParticleToVelocityBoundary";
         // create a new particle, compare their cost, if this cost is lower, than replace it. else do nothing
         Particle new_particle = particle;
         float r1 = static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
@@ -157,12 +157,12 @@ namespace adaptive_open_local_planner
                 particle.personal_best.cost = particle.cost;
             }
         }
-        DLOG(INFO) << "out updateParticleToVelocityBoundary";
+        // DLOG(INFO) << "out updateParticleToVelocityBoundary";
     }
 
     void PSO::updateSwarm()
     {
-        DLOG(INFO) << "in updateSwarm";
+        // DLOG(INFO) << "in updateSwarm";
         if (particle_swarm_.size() < 1)
         {
             DLOG(WARNING) << "size of particle swarm is wrong!!!";
@@ -174,12 +174,12 @@ namespace adaptive_open_local_planner
             updateParticle(particle);
             updateParticleToVelocityBoundary(particle);
         }
-        DLOG(INFO) << "out updateSwarm";
+        // DLOG(INFO) << "out updateSwarm";
     }
     // checked OK
     void PSO::updateGlobalBest()
     {
-        DLOG(INFO) << "In updateGlobalBest:";
+        // DLOG(INFO) << "In updateGlobalBest:";
         // reset global best to first particle
         if (particle_swarm_.size() >= 1)
         {
@@ -204,12 +204,12 @@ namespace adaptive_open_local_planner
         }
         cost_vec_.emplace_back(global_best_.cost);
         publishCost();
-        DLOG(INFO) << "out updateGlobalBest:";
+        // DLOG(INFO) << "out updateGlobalBest:";
     }
 
     void PSO::initializeSwarm()
     {
-        DLOG(INFO) << "in initializeSwarm";
+        // DLOG(INFO) << "in initializeSwarm";
         // check if constraint is set
         if (linear_velocity_boundary_.size() == 0)
         {
@@ -240,7 +240,7 @@ namespace adaptive_open_local_planner
         }
 
         updateGlobalBest();
-        DLOG(INFO) << "out initializeSwarm";
+        // DLOG(INFO) << "out initializeSwarm";
     }
 
     float PSO::randomFloatNumber(const float &lower_limit, const float &upper_limit)
@@ -258,7 +258,7 @@ namespace adaptive_open_local_planner
     float PSO::evaluateFitnessFunction(const Particle &particle)
     {
         // original cost function is cost= distance/velocity.
-        DLOG(INFO) << "in evaluateFitnessFunction";
+        // DLOG(INFO) << "in evaluateFitnessFunction";
         float distance, cost = 0, jerk_portion = 0, delta_velocity, time;
         // DLOG(INFO) << "size of particle.position_vec is " << particle.position_vec.size();
         // DLOG(INFO) << "size of divided_path_ is " << divided_path_.size();
@@ -282,25 +282,25 @@ namespace adaptive_open_local_planner
                 cost = cost + 100000;
             }
         }
-        DLOG(INFO) << "velocity cost is " << cost;
+        // DLOG(INFO) << "velocity cost is " << cost;
         cost = cost + evaluateFitnessFunctionConstraints(particle);
-        DLOG(INFO) << "constraints is " << cost;
+        // DLOG(INFO) << "constraints is " << cost;
         bool add_jerk = true;
         if (add_jerk)
         {
             jerk_portion = sumJerk(particle);
-            DLOG(INFO) << "jerk portion cost is " << jerk_portion;
+            // DLOG(INFO) << "jerk portion cost is " << jerk_portion;
             // DLOG_IF(INFO, jerk_portion < 0 || jerk_portion > 1e5) << "jerk portion cost is " << jerk_portion;
             cost = cost + jerk_portion;
         }
-        DLOG(INFO) << "cost is " << cost;
-        DLOG(INFO) << "out evaluateFitnessFunction.";
+        // DLOG(INFO) << "cost is " << cost;
+        // DLOG(INFO) << "out evaluateFitnessFunction.";
         return cost;
     }
 
     std::vector<float> PSO::convertGlobalBestToVelocityVec()
     {
-        DLOG(INFO) << "in convertGlobalBestToVelocityVec:";
+        // DLOG(INFO) << "in convertGlobalBestToVelocityVec:";
         return global_best_.position_vec;
     }
 
@@ -430,7 +430,7 @@ namespace adaptive_open_local_planner
 
     void PSO::publishJerk()
     {
-        DLOG(INFO) << "in publishJerk:";
+        // DLOG(INFO) << "in publishJerk:";
         std::vector<float> jerk_vec = findJerk(global_best_);
         jerk_pub_ = nh_.advertise<std_msgs::Float32>("jerk", 1, true);
         std_msgs::Float32 jerk;
@@ -443,19 +443,19 @@ namespace adaptive_open_local_planner
         {
             DLOG(WARNING) << "size of jerk vec is zero!!!";
         }
-        DLOG(INFO) << "out publishJerk.";
+        // DLOG(INFO) << "out publishJerk.";
     }
 
     void PSO::publishCost()
     {
-        DLOG(INFO) << "in publishCost:";
+        // DLOG(INFO) << "in publishCost:";
         float cost = global_best_.cost;
         cost_pub_ = nh_.advertise<std_msgs::Float32>("cost", 1, true);
         std_msgs::Float32 cost_msg;
 
         cost_msg.data = cost;
         cost_pub_.publish(cost_msg);
-        DLOG(INFO) << "out publishCost.";
+        // DLOG(INFO) << "out publishCost.";
     }
 
     void PSO::findFineVelocityVec(const std::vector<float> &coarse_velocity_vec)
@@ -696,7 +696,7 @@ namespace adaptive_open_local_planner
 
     void PSO::plotCost()
     {
-        DLOG(INFO) << "in plot";
+        // DLOG(INFO) << "in plot";
         // plot velocity
         matplotlibcpp::figure();
         // matplotlibcpp::ion();
@@ -718,7 +718,7 @@ namespace adaptive_open_local_planner
         std::string time_mark = std::to_string(now);
         matplotlibcpp::save(path + file_name + time_mark + ".png");
 
-        DLOG(INFO) << "out plot";
+        // DLOG(INFO) << "out plot";
     }
 
     float PSO::handleJerkConstraintsForFitnessFunction(const Particle &particle)
