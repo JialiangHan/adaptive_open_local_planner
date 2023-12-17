@@ -28,6 +28,8 @@ namespace adaptive_open_local_planner
     std::string car_footprint_rviz_topic;
     std::string box_obstacle_rviz_topic;
 
+    std::string ackermann_cmd_topic;
+
     double planning_frequency;
     double control_delay;
     // Parameters
@@ -107,6 +109,8 @@ namespace adaptive_open_local_planner
       safety_box_rviz_topic = "safety_box_rviz";
       car_footprint_rviz_topic = "car_footprint_rviz";
       box_obstacle_rviz_topic = "box_obstacle_rviz";
+
+      ackermann_cmd_topic = "/ackermann_cmd_mux/output";
 
       control_delay = 1;
       planning_frequency = 10;

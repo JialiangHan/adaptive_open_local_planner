@@ -47,9 +47,9 @@ namespace adaptive_open_local_planner
         if (!initialized_)
         {
             // create Node Handle with name of plugin (as used in move_base for loading)
-            // ros::NodeHandle nh("~/" + name);
-
-            params_.loadRosParamFromNodeHandle(nh);
+            ros::NodeHandle nh_para("~/" + name);
+            ros::NodeHandle nh;
+            params_.loadRosParamFromNodeHandle(nh_para);
             // DLOG(INFO) << "evaluate_path is " << params_.evaluate_path;
             if (params_.evaluate_path)
             {
@@ -78,6 +78,8 @@ namespace adaptive_open_local_planner
             safety_box_rviz_pub = nh.advertise<visualization_msgs::Marker>(params_.safety_box_rviz_topic, 1, true);
             car_footprint_rviz_pub = nh.advertise<visualization_msgs::Marker>(params_.car_footprint_rviz_topic, 1, true);
             box_obstacle_rviz_pub = nh.advertise<visualization_msgs::Marker>(params_.box_obstacle_rviz_topic, 1, true);
+
+            ackermann_cmd_mux_pub_ = nh.advertise<ackermann_msgs::AckermannDriveStamped>(params_.ackermann_cmd_topic, 1, true);
 
             global_plan_received_ = false;
             vehicle_state_received_ = false;
@@ -193,13 +195,67 @@ namespace adaptive_open_local_planner
         Eigen::Vector4d current_state(current_state_in_map_frame_.x, current_state_in_map_frame_.y, current_state_in_map_frame_.yaw, current_state_in_map_frame_.speed);
         Eigen::Vector2d control_vec = mpc_.output(current_state);
         goalCheck();
-        cmd_vel.twist.linear.x = current_state_in_map_frame_.speed + control_vec[0] * 1 / params_.planning_frequency;
-        cmd_vel.twist.linear.y = 0;
-        cmd_vel.twist.angular.z = control_vec[1] * params_.planning_frequency;
-        // cmd_vel.twist.linear.x = velocity;
+
+        Eigen::MatrixXd predictedState = mpc_.getPredictedState();
+        // cmd_vel.twist.linear.x = current_state_in_map_frame_.speed + control_vec[0] * 1 / params_.planning_frequency;
         // cmd_vel.twist.linear.y = 0;
-        // cmd_vel.twist.angular.z = steering_angle_rate;
-        DLOG(INFO) << "speed command is " << velocity << " steering angle command is " << steering_angle_rate;
+        // cmd_vel.twist.angular.z = control_vec[1] * params_.planning_frequency;
+
+        // DLOG(INFO) << "speed command is " << cmd_vel.twist.linear.x << " steering angle command is " << cmd_vel.twist.angular.z;
+        publishAckermanncmdstate(predictedState.col(0));
+        // publishAckermanncmd(control_vec);
+
+        return true;
+    }
+    bool AdaptiveOpenLocalPlannerROS::publishAckermanncmdstate(const Eigen::Vector4d &predicted_state)
+    {
+
+        double speed = predicted_state[3];
+        // control_vec[1] is already steering angle, no need to times planning freq
+        // double turn = control_vec[1] * params_.planning_frequency;
+        double turn = predicted_state[2] - current_state_in_map_frame_.yaw;
+        DLOG(INFO) << "current speed is " << current_state_in_map_frame_.speed << " predicted speed is " << speed;
+        DLOG(INFO) << "speed command is " << speed << " steering angle command is " << turn;
+
+        ackermann_msgs::AckermannDriveStamped msg;
+        msg.header.stamp = ros::Time::now();
+        msg.header.frame_id = "base_link";
+
+        msg.drive.speed = speed;
+        // no use
+        msg.drive.acceleration = 0;
+        // no use
+        msg.drive.jerk = 1;
+        msg.drive.steering_angle = turn;
+        // no use
+        msg.drive.steering_angle_velocity = 0;
+
+        ackermann_cmd_mux_pub_.publish(msg);
+        return true;
+    }
+    bool AdaptiveOpenLocalPlannerROS::publishAckermanncmd(const Eigen::Vector2d &control_vec)
+    {
+
+        double speed = current_state_in_map_frame_.speed + control_vec[0] * 1 / params_.planning_frequency;
+        // control_vec[1] is already steering angle, no need to times planning freq
+        // double turn = control_vec[1] * params_.planning_frequency;
+        double turn = control_vec[1];
+        DLOG(INFO) << "current speed is " << current_state_in_map_frame_.speed << " predicted acceleration is " << control_vec[0] << " predicted speed is " << speed;
+        DLOG(INFO) << "speed command is " << speed << " steering angle command is " << turn << " acceleration is " << control_vec[0] << " steering angle rate is " << control_vec[1];
+
+        ackermann_msgs::AckermannDriveStamped msg;
+        msg.header.stamp = ros::Time::now();
+        msg.header.frame_id = "base_link";
+
+        msg.drive.speed = speed;
+        msg.drive.acceleration = control_vec[0];
+        // no use
+        msg.drive.jerk = 1;
+        msg.drive.steering_angle = turn;
+        // no use
+        msg.drive.steering_angle_velocity = 0;
+
+        ackermann_cmd_mux_pub_.publish(msg);
         return true;
     }
 

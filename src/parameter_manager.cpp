@@ -18,6 +18,7 @@ namespace adaptive_open_local_planner
     nh.getParam("safety_box_rviz_topic", safety_box_rviz_topic);
     nh.getParam("car_footprint_rviz_topic", car_footprint_rviz_topic);
     nh.getParam("box_obstacle_rviz_topic", box_obstacle_rviz_topic);
+    nh.getParam("ackermann_cmd_topic", ackermann_cmd_topic);
 
     nh.getParam("planning_frequency", planning_frequency);
 

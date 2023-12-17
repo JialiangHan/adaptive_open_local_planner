@@ -26,6 +26,7 @@
 #include <nav_msgs/Path.h>
 #include <nav_msgs/Odometry.h>
 #include <geometry_msgs/PoseStamped.h>
+#include <ackermann_msgs/AckermannDriveStamped.h>
 #include <visualization_msgs/MarkerArray.h>
 #include <visualization_msgs/Marker.h>
 #include <geometry_msgs/PoseArray.h>
@@ -205,6 +206,10 @@ namespace adaptive_open_local_planner
 
         std::vector<Eigen::Vector4d> convertTrajectory(const std::vector<Waypoint> &waypoint_vec);
 
+        bool publishAckermanncmd(const Eigen::Vector2d &control_vec);
+
+        bool publishAckermanncmdstate(const Eigen::Vector4d &predicted_state);
+
     private:
         // Definition of member variables
 
@@ -230,8 +235,6 @@ namespace adaptive_open_local_planner
         // flags
         bool initialized_; //!< Keeps track about the correct initialization of this class
 
-        ros::NodeHandle nh;
-
         // Subscribers and Publishers
         ros::Subscriber odom_sub;
 
@@ -244,6 +247,8 @@ namespace adaptive_open_local_planner
         ros::Publisher safety_box_rviz_pub;
         ros::Publisher car_footprint_rviz_pub;
         ros::Publisher box_obstacle_rviz_pub;
+
+        ros::Publisher ackermann_cmd_mux_pub_;
 
         PoseSE2 robot_pose_; //!< Store current robot pose
         // Global Variables

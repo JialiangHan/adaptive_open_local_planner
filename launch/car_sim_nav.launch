@@ -16,7 +16,7 @@
   <arg name="pitch" default="0"/>
   <arg name="yaw" default="0"/>
 
-  <node pkg="racecar_control" type="nav_sim.py" name="nav_sim_contral" />
+  <!-- <node pkg="racecar_control" type="nav_sim.py" name="nav_sim_contral" /> -->
 
   <param name="robot_description" command="$(find xacro)/xacro '$(find racecar_description)/urdf/racecar.xacro'" />
 

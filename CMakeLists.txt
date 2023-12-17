@@ -31,6 +31,7 @@ find_package(catkin REQUIRED COMPONENTS
   tf2_geometry_msgs
   tf2_ros
   visualization_msgs
+  ackermann_msgs
 )
 FIND_PACKAGE(Glog REQUIRED)
 FIND_PACKAGE(Gflags)

@@ -7,6 +7,7 @@
 #include "glog/logging.h"
 #include "gflags/gflags.h"
 #include <list>
+#include <math.h>
 
 namespace adaptive_open_local_planner
 {
@@ -26,8 +27,10 @@ namespace adaptive_open_local_planner
 
         VectorU output(const VectorX &x0_observe);
 
+        Eigen::MatrixXd getPredictedState();
+
     private:
-        void findPoint(const double &distance, double &x, double &y, double &heading, double &speed, double &steering_angle);
+        void findPoint(const double &distance, double &x, double &y, double &heading, double &speed);
 
         void updateAdBdgd(const double &arc_length, double &x, double &y, double &last_phi, double &phi);
         /**
@@ -145,6 +148,25 @@ namespace adaptive_open_local_planner
          */
         Eigen::SparseMatrix<double> setupqx(const VectorX &x0);
 
+        VectorX findNext(const VectorX &x0_observe);
+
+        VectorX interpolate(const float &distance);
+
+        VectorX interpolate(const VectorX &x0, const VectorX &x1, const double &distance);
+
+        double findCost(const Eigen::SparseMatrix<double> &hessian, const Eigen::VectorXd &control_vec, const Eigen::VectorXd &gradient_matrix);
+        /**
+         * @brief find position error, heading error and velocity error for predict state.
+         *
+         * @param predictMat
+         * @return std::vector<double> first is position error, second is heading error, last is velocity error
+         */
+        std::vector<double> findError(const Eigen::MatrixXd &predictMat);
+
+        double findPositionError(const Eigen::MatrixXd &predictMat);
+        double findHeadingError(const Eigen::MatrixXd &predictMat);
+        double findVelocityError(const Eigen::MatrixXd &predictMat);
+
     private:
         int number_of_state_ = 4;   // state x y phi v
         int number_of_control_ = 2; // input a delta
@@ -169,6 +191,7 @@ namespace adaptive_open_local_planner
         int N_;
         // should be reference trajectory
         std::vector<VectorX> ref_trajectory_;
+        Eigen::MatrixXd predictMat_;
         double desired_v_;
 
         Eigen::MatrixXd BB_;
@@ -181,5 +204,7 @@ namespace adaptive_open_local_planner
         double a_max_;
         double steering_angle_max_;
         double steering_angle_rate_max_;
+
+        std::vector<double> cost_vec_;
     };
 }
