@@ -3,7 +3,7 @@
 namespace adaptive_open_local_planner
 {
     // good
-    void MPC::initialize(const double &vehicle_length, const double &dt, const double &delay, const int &predict_length, const double &rho, const double &rhoN, const double &v_max, const double &a_max, const double &steering_angle_max, const double &steering_angle_rate_max)
+    void MPC::initialize(const double &vehicle_length, const double &dt, const double &delay, const int &predict_length, const double &rho, const double &rhoN, const double &v_max, const double &a_max, const double &steering_angle_max, const double &steering_angle_rate_max, bool evaluate_path)
     {
         // vehicle length
         ll_ = vehicle_length;
@@ -19,6 +19,21 @@ namespace adaptive_open_local_planner
         a_max_ = a_max;
         steering_angle_max_ = steering_angle_max;
         steering_angle_rate_max_ = steering_angle_rate_max;
+        evaluate_path_ = evaluate_path;
+        if (evaluate_path_)
+        {
+            std::string position_error_topic, heading_error_topic, velocity_error_topic;
+            position_error_topic = "position_error";
+            heading_error_topic = "heading_error";
+            velocity_error_topic = "velocity_error";
+
+            position_error_pub = nh.advertise<std_msgs::Float32>(position_error_topic, 100, true);
+
+            heading_error_pub = nh.advertise<std_msgs::Float32>(heading_error_topic, 100, true);
+
+            velocity_error_pub = nh.advertise<std_msgs::Float32>(velocity_error_topic, 100, true);
+        }
+
         // DLOG(INFO) << "MPC initialized. vehicle length is " << ll_ << " delta time is " << dt_ << " time delay is " << delay_ << " predicted length is " << N_ << " rho is " << rho_ << " rhoN is " << rhoN_ << " max velocity is " << v_max_ << " max acceleration is " << a_max_ << " max steering angle is " << steering_angle_max_ << " max steering_angle_rate_max_ is " << steering_angle_rate_max_;
     }
     // good
@@ -556,10 +571,15 @@ namespace adaptive_open_local_planner
         // cost_vec_.emplace_back(cost);
         // DLOG(INFO) << "solve QP success.";
         // DLOG(INFO) << "predictInput_ size is " << predictInput_.size();
-        std::vector<double> error_vec = findError(predictMat_);
-        DLOG(INFO) << "position error is " << error_vec[0];
-        DLOG(INFO) << "heading error is " << error_vec[1];
-        DLOG(INFO) << "velocity error is " << error_vec[2];
+        if (evaluate_path_)
+        {
+            std::vector<double> error_vec = findError(predictMat_);
+            // DLOG(INFO) << "position error is " << error_vec[0];
+            // DLOG(INFO) << "heading error is " << error_vec[1];
+            // DLOG(INFO) << "velocity error is " << error_vec[2];
+            publishErrors(error_vec);
+        }
+
         predictInput_.clear();
         for (int i = 0; i < N_; ++i)
         {
@@ -760,5 +780,22 @@ namespace adaptive_open_local_planner
     Eigen::MatrixXd MPC::getPredictedState()
     {
         return predictMat_;
+    }
+
+    bool MPC::publishErrors(const std::vector<double> &error_vec)
+    {
+        // DLOG(INFO) << "publishErrors";
+
+        std_msgs::Float32 position_error, heading_error, velocity_error;
+
+        position_error.data = error_vec[0];
+        heading_error.data = error_vec[1];
+        velocity_error.data = error_vec[2];
+        // DLOG(INFO) << "publishErrors: position error is " << error_vec[0] << " heading error is " << error_vec[1] << " velocity error is " << error_vec[2];
+        position_error_pub.publish(position_error);
+        heading_error_pub.publish(heading_error);
+        velocity_error_pub.publish(velocity_error);
+
+        return true;
     }
 }

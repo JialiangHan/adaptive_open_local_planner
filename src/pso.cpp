@@ -67,7 +67,7 @@ namespace adaptive_open_local_planner
         // }
         publishJerk();
         findAngularVelocity();
-        plotCost();
+        // plotCost();
         // DLOG(INFO) << "out evaluate.";
         return convertDividedPathToFullPath();
         // return velocity_vec;

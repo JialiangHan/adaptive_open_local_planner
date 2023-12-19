@@ -25,6 +25,30 @@ namespace adaptive_open_local_planner
         // DLOG(INFO) << "set speed";
     }
 
+    void PathEvaluator::CallbackPositionError(const std_msgs::Float32::ConstPtr &position_error, const std::string &topic_name)
+    {
+        position_error_vec_.emplace_back(position_error->data);
+        // DLOG(INFO) << "position_error_vec_ is " << position_error->data;
+    }
+
+    void PathEvaluator::CallbackHeadingError(const std_msgs::Float32::ConstPtr &heading_error, const std::string &topic_name)
+    {
+        heading_error_vec_.emplace_back(heading_error->data);
+        // DLOG(INFO) << "heading_error  is " << heading_error->data;
+    }
+
+    void PathEvaluator::CallbackVelocityError(const std_msgs::Float32::ConstPtr &velocity_error, const std::string &topic_name)
+    {
+        velocity_error_vec_.emplace_back(velocity_error->data);
+        // DLOG(INFO) << "velocity_error  is " << velocity_error->data;
+    }
+
+    void PathEvaluator::CallbackAckermann(const ackermann_msgs::AckermannDriveStamped::ConstPtr &ackermann, const std::string &topic_name)
+    {
+        steering_angle_vec_.emplace_back(ackermann->drive.steering_angle);
+        speed_vec_.emplace_back(ackermann->drive.speed);
+    }
+
     void PathEvaluator::CallbackJerk(const std_msgs::Float32::ConstPtr &jerk, const std::string &topic_name)
     {
         jerk_vec_.emplace_back(jerk->data);
@@ -97,11 +121,16 @@ namespace adaptive_open_local_planner
         cost_vec_.emplace_back(cost->data);
     }
 
-    void PathEvaluator::Plot()
+    void PathEvaluator::Plot(const std::vector<std::string> &title_vec)
     {
+        // for (const auto &element : title_vec)
+        // {
+        //     DLOG(INFO) << "element in title vec is " << element;
+        // }
+
         matplotlibcpp::ion();
         matplotlibcpp::clf();
-        std::vector<std::string> title_vec = {"curvature", "smoothness", "Angular velocity", "linear velocity", "jerk", "cost"};
+        // std::vector<std::string> title_vec = {"curvature", "smoothness", "Angular velocity", "linear velocity", "jerk", "cost"};
         for (size_t i = 0; i < title_vec.size(); i++)
         {
             matplotlibcpp::subplot(2, 3, i + 1);
@@ -130,6 +159,26 @@ namespace adaptive_open_local_planner
             {
                 vec = cost_vec_;
             }
+            if (title_vec[i] == "position error")
+            {
+                vec = position_error_vec_;
+            }
+            if (title_vec[i] == "heading error")
+            {
+                vec = heading_error_vec_;
+            }
+            if (title_vec[i] == "velocity error")
+            {
+                vec = velocity_error_vec_;
+            }
+            if (title_vec[i] == "steering angle")
+            {
+                vec = steering_angle_vec_;
+            }
+            if (title_vec[i] == "speed")
+            {
+                vec = speed_vec_;
+            }
 
             matplotlibcpp::plot(vec, {{"label", "raw path"}});
 
@@ -143,6 +192,15 @@ namespace adaptive_open_local_planner
         }
 
         matplotlibcpp::pause(0.1);
+        std::string path = "/home/jialiang/Code/thesis_ws/src/adaptive_open_local_planner/figs/";
+        std::string file_name = "mpc";
+
+        auto now = std::time(0);
+        std::string time_mark = std::to_string(now);
+        std::filesystem::remove_all(path);
+
+        std::filesystem::create_directory(path);
+        matplotlibcpp::save(path + file_name + time_mark + ".png");
     }
 
     void PathEvaluator::EvaluatePath()
@@ -150,6 +208,13 @@ namespace adaptive_open_local_planner
         // DLOG(INFO) << "in EvaluatePath:";
         CalculateCurvature();
         CalculateSmoothness();
-        Plot();
+        std::vector<std::string> title_vec = {"curvature", "smoothness", "Angular velocity", "linear velocity", "jerk", "cost"};
+        Plot(title_vec);
+    }
+
+    void PathEvaluator::EvaluateControl()
+    {
+        std::vector<std::string> title_vec = {"position error", "heading error", "velocity error", "speed", "steering angle"};
+        Plot(title_vec);
     }
 }

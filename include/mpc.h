@@ -8,7 +8,9 @@
 #include "gflags/gflags.h"
 #include <list>
 #include <math.h>
-
+#include <ros/ros.h>
+#include <ros/console.h>
+#include <std_msgs/Float32.h>
 namespace adaptive_open_local_planner
 {
 
@@ -21,7 +23,7 @@ namespace adaptive_open_local_planner
     class MPC
     {
     public:
-        void initialize(const double &vehicle_length, const double &dt, const double &delay, const int &predict_length, const double &rho, const double &rhoN, const double &v_max, const double &a_max, const double &steering_angle_max, const double &steering_angle_rate_max);
+        void initialize(const double &vehicle_length, const double &dt, const double &delay, const int &predict_length, const double &rho, const double &rhoN, const double &v_max, const double &a_max, const double &steering_angle_max, const double &steering_angle_rate_max, bool evaluate_path);
 
         bool inputRefTrajectory(const std::vector<VectorX> &ref_trajectory);
 
@@ -167,6 +169,8 @@ namespace adaptive_open_local_planner
         double findHeadingError(const Eigen::MatrixXd &predictMat);
         double findVelocityError(const Eigen::MatrixXd &predictMat);
 
+        bool publishErrors(const std::vector<double> &error_vec);
+
     private:
         int number_of_state_ = 4;   // state x y phi v
         int number_of_control_ = 2; // input a delta
@@ -206,5 +210,12 @@ namespace adaptive_open_local_planner
         double steering_angle_rate_max_;
 
         std::vector<double> cost_vec_;
+
+        bool evaluate_path_;
+
+        ros::NodeHandle nh;
+        ros::Publisher position_error_pub;
+        ros::Publisher heading_error_pub;
+        ros::Publisher velocity_error_pub;
     };
 }

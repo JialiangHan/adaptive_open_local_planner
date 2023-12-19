@@ -53,14 +53,17 @@ namespace adaptive_open_local_planner
             // DLOG(INFO) << "evaluate_path is " << params_.evaluate_path;
             if (params_.evaluate_path)
             {
-                std::string path_topic, cmd_topic, jerk_topic, cost_topic;
+                std::string path_topic, cmd_topic, jerk_topic, cost_topic, position_error_topic, heading_error_topic, velocity_error_topic;
                 path_topic = "extracted_path_rviz";
                 cmd_topic = "cmd_vel";
                 jerk_topic = "jerk";
                 cost_topic = "cost";
-                path_evaluator_ptr_.reset(new PathEvaluator(path_topic, cmd_topic, jerk_topic, cost_topic));
+                position_error_topic = "position_error";
+                heading_error_topic = "heading_error";
+                velocity_error_topic = "velocity_error";
+                path_evaluator_ptr_.reset(new PathEvaluator(path_topic, cmd_topic, jerk_topic, cost_topic, position_error_topic, heading_error_topic, velocity_error_topic, params_.ackermann_cmd_topic));
             }
-            mpc_.initialize(params_.wheelbase_length, 1 / params_.planning_frequency, params_.control_delay, params_.predicted_length, params_.rho, params_.rhoN, params_.max_linear_velocity, params_.max_linear_acceleration, params_.max_steer_angle, params_.max_angular_acceleration);
+            mpc_.initialize(params_.wheelbase_length, 1 / params_.planning_frequency, params_.control_delay, params_.predicted_length, params_.rho, params_.rhoN, params_.max_linear_velocity, params_.max_linear_acceleration, params_.max_steer_angle, params_.max_angular_acceleration, params_.evaluate_path);
             // DLOG(INFO) << "max linear velocity is " << params_.max_linear_velocity;
 
             velocity_planner_ptr_.reset(new VelocityPlanner(params_.path_divide_factor, params_.max_linear_velocity, params_.min_linear_velocity, params_.max_angular_acceleration, params_.min_angular_acceleration, params_.max_linear_acceleration, params_.min_linear_acceleration, params_.weighting, params_.personal_learning_rate, params_.global_learning_rate, params_.cost_difference_boundary, params_.max_interation, params_.number_of_particle));
@@ -79,7 +82,7 @@ namespace adaptive_open_local_planner
             car_footprint_rviz_pub = nh.advertise<visualization_msgs::Marker>(params_.car_footprint_rviz_topic, 1, true);
             box_obstacle_rviz_pub = nh.advertise<visualization_msgs::Marker>(params_.box_obstacle_rviz_topic, 1, true);
 
-            ackermann_cmd_mux_pub_ = nh.advertise<ackermann_msgs::AckermannDriveStamped>(params_.ackermann_cmd_topic, 1, true);
+            ackermann_cmd_mux_pub_ = nh.advertise<ackermann_msgs::AckermannDriveStamped>(params_.ackermann_cmd_topic, 100, true);
 
             global_plan_received_ = false;
             vehicle_state_received_ = false;
@@ -141,7 +144,8 @@ namespace adaptive_open_local_planner
         // DLOG(INFO) << "velocity is " << cmd_vel.linear.x << " " << cmd_vel.linear.y << " steering angle rate is " << cmd_vel.angular.z;
         if (params_.evaluate_path)
         {
-            path_evaluator_ptr_->EvaluatePath();
+            // path_evaluator_ptr_->EvaluatePath();
+            path_evaluator_ptr_->EvaluateControl();
         }
 
         return outcome;
@@ -214,7 +218,7 @@ namespace adaptive_open_local_planner
         // control_vec[1] is already steering angle, no need to times planning freq
         // double turn = control_vec[1] * params_.planning_frequency;
         double turn = predicted_state[2] - current_state_in_map_frame_.yaw;
-        DLOG(INFO) << "current speed is " << current_state_in_map_frame_.speed << " predicted speed is " << speed;
+        // DLOG(INFO) << "current speed is " << current_state_in_map_frame_.speed << " predicted speed is " << speed;
         DLOG(INFO) << "speed command is " << speed << " steering angle command is " << turn;
 
         ackermann_msgs::AckermannDriveStamped msg;
@@ -809,7 +813,7 @@ namespace adaptive_open_local_planner
                 }
             }
         }
-        plot(waypoint_vec);
+        // plot(waypoint_vec);
         // velocity = best_path[closest_index].speed;
         // steering_angle_rate = calculateAngleVelocity(best_path[closest_index], best_path[closest_index + 1]);
         // DLOG(INFO) << "out calculateVelocityAndSteeringAngleRate.";

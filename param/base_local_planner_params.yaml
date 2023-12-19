@@ -60,7 +60,7 @@ AdaptiveOpenLocalPlannerROS:
   max_global_plan_lookahead_dist : 3.0
   global_plan_prune_distance : 1
 
-  evaluate_path: false
+  evaluate_path: true
 # pso parameter
   weighting: 0.1
   personal_learning_rate: 0.1
@@ -69,7 +69,7 @@ AdaptiveOpenLocalPlannerROS:
   max_interation: 10000
 
   path_divide_factor: 0.4
-
+#  MPC
   predicted_length: 1
   control_delay: 1
   rho: 1
