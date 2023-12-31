@@ -72,8 +72,8 @@ namespace adaptive_open_local_planner
 
     nh.getParam("predicted_length", predicted_length);
     nh.getParam("control_delay", control_delay);
-    nh.getParam("rho", rho);
-    nh.getParam("rhoN", rhoN);
+    nh.getParam("heading_weighting", heading_weighting);
+    nh.getParam("last_heading_weighting", last_heading_weighting);
   }
 
 } // namespace adaptive_open_local_planner

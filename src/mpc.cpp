@@ -3,8 +3,9 @@
 namespace adaptive_open_local_planner
 {
     // good
-    void MPC::initialize(const double &vehicle_length, const double &dt, const double &delay, const int &predict_length, const double &rho, const double &rhoN, const double &v_max, const double &a_max, const double &steering_angle_max, const double &steering_angle_rate_max, bool evaluate_path)
+    void MPC::initialize(const double &vehicle_length, const double &dt, const double &delay, const int &predict_length, const double &heading_weighting, const double &last_heading_weighting, const double &v_max, const double &a_max, const double &steering_angle_max, const double &steering_angle_rate_max, bool evaluate_path)
     {
+        DLOG(INFO) << "initialize";
         // vehicle length
         ll_ = vehicle_length;
         // delta time
@@ -13,8 +14,8 @@ namespace adaptive_open_local_planner
         delay_ = delay;
         // should be predicted length
         N_ = predict_length;
-        rho_ = rho;
-        rhoN_ = rhoN;
+        heading_weighting_ = heading_weighting;
+        last_heading_weighting_ = last_heading_weighting;
         v_max_ = v_max;
         a_max_ = a_max;
         steering_angle_max_ = steering_angle_max;
@@ -34,16 +35,17 @@ namespace adaptive_open_local_planner
             velocity_error_pub = nh.advertise<std_msgs::Float32>(velocity_error_topic, 100, true);
         }
 
-        // DLOG(INFO) << "MPC initialized. vehicle length is " << ll_ << " delta time is " << dt_ << " time delay is " << delay_ << " predicted length is " << N_ << " rho is " << rho_ << " rhoN is " << rhoN_ << " max velocity is " << v_max_ << " max acceleration is " << a_max_ << " max steering angle is " << steering_angle_max_ << " max steering_angle_rate_max_ is " << steering_angle_rate_max_;
+        // DLOG(INFO) << "MPC initialized. vehicle length is " << ll_ << " delta time is " << dt_ << " time delay is " << delay_ << " predicted length is " << N_ << " heading_weighting is " << heading_weighting_ << " last_heading_weighting_heading_weighting is " << last_heading_weighting_ << " max velocity is " << v_max_ << " max acceleration is " << a_max_ << " max steering angle is " << steering_angle_max_ << " max steering_angle_rate_max_ is " << steering_angle_rate_max_;
     }
     // good
     bool MPC::inputRefTrajectory(const std::vector<VectorX> &ref_trajectory)
     {
+        // DLOG(INFO) << "inputRefTrajectory";
         ref_trajectory_ = ref_trajectory;
-        // for (const auto &element : ref_trajectory_)
-        // {
-        //     DLOG(INFO) << "ref element is " << element[0] << " " << element[1] << " heading is " << element[2] << " speed is " << element[3];
-        // }
+        for (const auto &element : ref_trajectory_)
+        {
+            DLOG(INFO) << "ref element is " << element[0] << " " << element[1] << " heading is " << element[2] << " speed is " << element[3];
+        }
         if (N_ > ref_trajectory_.size())
         {
             DLOG(INFO) << "predict length " << N_ << " is larger than ref trajectory size!!" << ref_trajectory_.size();
@@ -55,6 +57,7 @@ namespace adaptive_open_local_planner
     // good
     VectorX MPC::findNext(const VectorX &x0_observe)
     {
+        DLOG(INFO) << "findNext";
         if (ref_trajectory_.size() <= 0)
         {
             DLOG(WARNING) << "ref trajectory not set!";
@@ -69,16 +72,16 @@ namespace adaptive_open_local_planner
         {
             next = ref_trajectory_[index];
         }
-        // DLOG(INFO) << "current position is " << x0_observe[0] << " " << x0_observe[1] << " heading is " << x0_observe[2] << " speed is " << x0_observe[3];
-        // DLOG(INFO) << "next position is " << next[0] << " " << next[1] << " heading is " << next[2] << " speed is " << next[3];
+        DLOG(INFO) << "current position is " << x0_observe[0] << " " << x0_observe[1] << " heading is " << x0_observe[2] << " speed is " << x0_observe[3];
+        DLOG(INFO) << "next position is " << next[0] << " " << next[1] << " heading is " << next[2] << " speed is " << next[3];
         return next;
     }
 
     VectorU MPC::output(const VectorX &x0_observe)
     {
-        // DLOG(INFO) << "in output";
+        DLOG(INFO) << "in output";
         VectorU output;
-        // DLOG(INFO) << "current position is " << x0_observe[0] << " " << x0_observe[1] << " heading is " << x0_observe[2] << " speed is " << x0_observe[3];
+        DLOG(INFO) << "current position is " << x0_observe[0] << " " << x0_observe[1] << " heading is " << x0_observe[2] << " speed is " << x0_observe[3];
         VectorX x1 = findNext(x0_observe);
         int status = solveMPC(x1);
         if (status != 1)
@@ -96,24 +99,31 @@ namespace adaptive_open_local_planner
     // good
     void MPC::setWeighting()
     {
-        // DLOG(INFO) << "in setWeighting";
+        // TODO change weighting factor
+        DLOG(INFO) << "in setWeighting";
         // set size of sparse matrices
         Qx_.resize(number_of_state_ * N_, number_of_state_ * N_);
         // stage cost
         Qx_.setIdentity();
         for (int i = 1; i < N_; ++i)
         {
-            Qx_.coeffRef(i * number_of_state_ - 2, i * number_of_state_ - 2) = rho_;
-            Qx_.coeffRef(i * number_of_state_ - 1, i * number_of_state_ - 1) = 0;
+            // heading weighting
+            Qx_.coeffRef(i * number_of_state_ - 2, i * number_of_state_ - 2) = heading_weighting_;
+            // speed weighting
+            Qx_.coeffRef(i * number_of_state_ - 1, i * number_of_state_ - 1) = speed_weighting_;
         }
-        Qx_.coeffRef(N_ * number_of_state_ - 4, N_ * number_of_state_ - 4) = rhoN_;
-        Qx_.coeffRef(N_ * number_of_state_ - 3, N_ * number_of_state_ - 3) = rhoN_;
-        Qx_.coeffRef(N_ * number_of_state_ - 2, N_ * number_of_state_ - 2) = rhoN_ * rho_;
+        // position weighting
+        Qx_.coeffRef(N_ * number_of_state_ - 4, N_ * number_of_state_ - 4) = last_heading_weighting_;
+        Qx_.coeffRef(N_ * number_of_state_ - 3, N_ * number_of_state_ - 3) = last_heading_weighting_;
+        // heading weighting
+        Qx_.coeffRef(N_ * number_of_state_ - 2, N_ * number_of_state_ - 2) = last_heading_weighting_ * heading_weighting_;
         // DLOG(INFO) << Qx_;
     }
     // looks good
     void MPC::linearization(const double &phi, const double &v, const double &steering_angle)
     {
+        DLOG(INFO) << "linearization";
+        // DLOG(INFO) << "heading is " << phi << " velocity is " << v << " steering angle is " << steering_angle;
         Ad_ << 0, 0, -v * sin(phi), cos(phi),
             0, 0, v * cos(phi), sin(phi),
             0, 0, 0, tan(steering_angle) / ll_,
@@ -126,14 +136,15 @@ namespace adaptive_open_local_planner
         Ad_ = MatrixA::Identity() + dt_ * Ad_;
         Bd_ = dt_ * Bd_;
         gd_ = dt_ * gd_;
-        // DLOG(INFO) << Ad_;
-        // DLOG(INFO) << Bd_;
-        // DLOG(INFO) << gd_;
+        // DLOG(INFO) << "Ad_ is " << Ad_;
+        // DLOG(INFO) << "Bd_ is " << Bd_;
+        // DLOG(INFO) << "gd_ is " << gd_;
         return;
     }
     // looks good
     std::vector<Eigen::MatrixXd> MPC::setupBBAAggmatrix(const int &predicted_length, const VectorX &x0)
     {
+        DLOG(INFO) << "setupBBAAggmatrix";
         std::vector<Eigen::MatrixXd> result;
         Eigen::MatrixXd BB, AA, gg;
         BB.setZero(number_of_state_ * predicted_length, number_of_control_ * predicted_length);
@@ -185,6 +196,7 @@ namespace adaptive_open_local_planner
     // looks good
     VectorX MPC::compensateDelay(const VectorX &x0)
     {
+        DLOG(INFO) << "compensateDelay";
         VectorX x0_delay = x0;
         if (delay_ == 0)
         {
@@ -223,6 +235,8 @@ namespace adaptive_open_local_planner
 
     Eigen::SparseMatrix<double> MPC::setupqx(const VectorX &x0)
     {
+        DLOG(INFO) << "setupqx";
+        // DLOG(INFO) << "x0 is " << x0(0) << " " << x0(1) << " " << x0(2) << " " << x0(3);
         Eigen::SparseMatrix<double> qx;
         qx.resize(number_of_state_ * N_, 1);
         double s0 = findtrajetorylength(ref_trajectory_, x0);
@@ -247,7 +261,7 @@ namespace adaptive_open_local_planner
             qx.coeffRef(i * number_of_state_ + 2, 0) = -Qx_.coeffRef(i * number_of_state_ + 2, i * number_of_state_ + 2) * phi;
             qx.coeffRef(i * number_of_state_ + 3, 0) = -Qx_.coeffRef(i * number_of_state_ + 3, i * number_of_state_ + 3) * desired_v_;
 
-            // DLOG(INFO) << x << " " << y << " " << phi << " " << desired_v_;
+            // DLOG(INFO) << "next point on ref trajectory is " << x << " " << y << " " << phi << " " << desired_v_;
             s0 += desired_v_ * dt_;
 
             s0 = s0 < total_length ? s0 : total_length;
@@ -258,26 +272,21 @@ namespace adaptive_open_local_planner
     // good
     void MPC::findPoint(const double &distance, double &x, double &y, double &heading, double &speed)
     {
-        // int index = findClosestIndex(ref_trajectory_, distance);
-        // x = ref_trajectory_[index][0];
-        // y = ref_trajectory_[index][1];
-        // heading = ref_trajectory_[index][2];
-        // speed = ref_trajectory_[index][3];
-        // steering_angle = ref_trajectory_[index + 1][2] - ref_trajectory_[index][2];
+        DLOG(INFO) << "findPoint";
         VectorX point = interpolate(distance);
         x = point[0];
         y = point[1];
         heading = point[2];
         speed = point[3];
-        // DLOG(INFO) << "index is " << index << " ref trajectory size is " << ref_trajectory_.size() << " distance is " << distance << " " << x << " " << y << " " << heading << " " << speed << " " << steering_angle;
+        DLOG(INFO) << " ref trajectory size is " << ref_trajectory_.size() << " distance is " << distance << " " << x << " " << y << " " << heading << " " << speed;
     }
     //  good
     int MPC::findClosestIndex(const std::vector<VectorX> &ref_trajectory, const double &distance)
     {
-        // DLOG(INFO) << "in findClosestIndex";
+        DLOG(INFO) << "in findClosestIndex";
         int index = 0;
         double path_length_pre, path_length_succ;
-        // DLOG(INFO) << "distance is " << distance;
+
         if (distance <= 0)
         {
             // DLOG(INFO) << "index is " << index;
@@ -301,7 +310,7 @@ namespace adaptive_open_local_planner
             }
             // DLOG(INFO) << i << "th pre length is " << path_length_pre << " succ length is " << path_length_succ;
         }
-        // DLOG(INFO) << "index is " << index;
+        DLOG(INFO) << "distance is " << distance << " index is " << index;
         // if (index == 0)
         // {
         //     DLOG(WARNING) << "index equal to zero!!!Impossible";
@@ -312,6 +321,8 @@ namespace adaptive_open_local_planner
     // looks good
     void MPC::updateAdBdgd(const double &arc_length, double &x, double &y, double &last_phi, double &phi)
     {
+        DLOG(INFO) << "updateAdBdgd";
+        DLOG(INFO) << "arc length is " << arc_length << " x is " << x << " y is " << y << " last heading is " << last_phi << " current phi is " << phi;
         double steering_angle;
         findPoint(arc_length, x, y, phi, desired_v_);
         if (phi - last_phi > M_PI)
@@ -330,6 +341,7 @@ namespace adaptive_open_local_planner
     // looks good
     Eigen::SparseMatrix<double> MPC::setupHessian()
     {
+        DLOG(INFO) << "setupHessian";
         Eigen::SparseMatrix<double> hessian;
         hessian.resize(number_of_control_ * N_, number_of_control_ * N_);
         Eigen::SparseMatrix<double> BB_sparse = BB_.sparseView();
@@ -340,6 +352,7 @@ namespace adaptive_open_local_planner
     // looks good
     Eigen::VectorXd MPC::setupGradient(const VectorX &x0, const Eigen::SparseMatrix<double> &qx)
     {
+        DLOG(INFO) << "setupGradient";
         // gradient= BB_T * Qx_T *(AA*X+gg)+B_T*qx
         Eigen::SparseMatrix<double> gradient;
         gradient.resize(number_of_control_ * N_, 1);
@@ -357,6 +370,7 @@ namespace adaptive_open_local_planner
     // looks good
     std::vector<Eigen::SparseMatrix<double>> MPC::setStateConstrain()
     {
+        DLOG(INFO) << "setStateConstrain";
         std::vector<Eigen::SparseMatrix<double>> state_constrain_vec;
         Eigen::SparseMatrix<double> lx, Cx, ux;
         Cx.resize(1 * N_, number_of_state_ * N_);
@@ -377,6 +391,7 @@ namespace adaptive_open_local_planner
     // looks good
     std::vector<Eigen::SparseMatrix<double>> MPC::setControlConstrain()
     {
+        DLOG(INFO) << "setControlConstrain";
         std::vector<Eigen::SparseMatrix<double>> control_constrain_vec;
         Eigen::SparseMatrix<double> lu, Cu, uu;
         // a delta constrains
@@ -423,6 +438,7 @@ namespace adaptive_open_local_planner
                                Eigen::VectorXd &lower_limit_d,
                                Eigen::VectorXd &upper_limit_d)
     {
+        DLOG(INFO) << "combineConstrain";
         int n_cons = 4; // v a steering_angle steering_angle_rate
         A.resize(n_cons * N_, number_of_control_ * N_);
         Eigen::SparseMatrix<double> lower_limit, upper_limit;
@@ -466,12 +482,12 @@ namespace adaptive_open_local_planner
     // looks good
     int MPC::solveMPC(const VectorX &x0_observe)
     {
-        // DLOG(INFO) << "in solveMPC";
+        DLOG(INFO) << "in solveMPC";
         // historyInput_.clear();
         // DLOG(INFO) << "historyInput_ size is " << historyInput_.size();
         // DLOG(INFO) << "predictInput_ size is " << predictInput_.size();
         historyInput_ = predictInput_;
-
+        // DLOG(INFO) << "x0_observe is " << x0_observe(0) << " " << x0_observe(1) << " " << x0_observe(2) << " " << x0_observe(3);
         setWeighting();
         // VectorX x0 = compensateDelay(x0_observe);
         VectorX x0 = x0_observe;
@@ -508,7 +524,7 @@ namespace adaptive_open_local_planner
     // looks good
     int MPC::solveQP(const Eigen::SparseMatrix<double> &hessian, const Eigen::Ref<Eigen::VectorXd> &gradient, const Eigen::SparseMatrix<double> &linearMatrix, const Eigen::Ref<Eigen::VectorXd> &lowerBound, const Eigen::Ref<Eigen::VectorXd> &upperBound, const VectorX &x0)
     {
-        // DLOG(INFO) << "in solveQP";
+        DLOG(INFO) << "in solveQP";
         // instantiate the solver
         OsqpEigen::Solver solver;
         // settings
@@ -558,7 +574,7 @@ namespace adaptive_open_local_planner
             DLOG(INFO) << "solve QP failed.";
             return 0;
         }
-        DLOG(INFO) << "solve QP success.";
+        // DLOG(INFO) << "solve QP success.";
         Eigen::VectorXd sol = solver.getSolution();
         // DLOG(INFO) << "solve QP success.";
         Eigen::MatrixXd solMat = Eigen::Map<const Eigen::MatrixXd>(sol.data(), number_of_control_, N_);
@@ -585,9 +601,9 @@ namespace adaptive_open_local_planner
         {
             predictInput_.emplace_back(solMat.col(i));
             // predictInput_[i] = solMat.col(i);
-            DLOG(INFO) << "predicted input is: acceleration is " << solMat.col(i)[0] << " steering angle is " << solMat.col(i)[1];
-            DLOG(INFO) << "predicted state is " << predictMat_.col(i)[0] << " " << predictMat_.col(i)[1] << " heading is " << predictMat_.col(i)[2] << " speed is " << predictMat_.col(i)[3];
-            DLOG(INFO) << "ref state is " << ref_trajectory_[i][0] << " " << ref_trajectory_[i][1] << " heading is " << ref_trajectory_[i][2] << " speed is " << ref_trajectory_[i][3];
+            // DLOG(INFO) << i << "th predicted input is: acceleration is " << solMat.col(i)[0] << " steering angle is " << solMat.col(i)[1];
+            // DLOG(INFO) << i << "th predicted state is " << predictMat_.col(i)[0] << " " << predictMat_.col(i)[1] << " heading is " << predictMat_.col(i)[2] << " speed is " << predictMat_.col(i)[3];
+            // DLOG(INFO) << "ref state is " << ref_trajectory_[i][0] << " " << ref_trajectory_[i][1] << " heading is " << ref_trajectory_[i][2] << " speed is " << ref_trajectory_[i][3];
         }
 
         // DLOG(INFO) << "solve QP success.";
@@ -596,15 +612,17 @@ namespace adaptive_open_local_planner
     //  good
     double MPC::findtrajetorylength(const std::vector<VectorX> &ref_trajectory, const VectorX &current_location)
     {
+        DLOG(INFO) << "findtrajetorylength";
         double length;
         int closest_index = findClosestIndex(ref_trajectory, current_location);
         length = findLength(ref_trajectory, closest_index);
-        // DLOG(INFO) << "current location is " << current_location[0] << " " << current_location[1] << " closest index is " << closest_index << " length is " << length;
+        DLOG(INFO) << "current location is " << current_location[0] << " " << current_location[1] << " closest index is " << closest_index << " length is " << length;
         return length;
     }
     // good
     int MPC::findClosestIndex(const std::vector<VectorX> &ref_trajectory, const VectorX &current_location)
     {
+        DLOG(INFO) << "findClosestIndex";
         int index;
         auto it = std::find(ref_trajectory.begin(), ref_trajectory.end(), current_location);
 
@@ -625,7 +643,7 @@ namespace adaptive_open_local_planner
                 }
             }
         }
-        // DLOG(INFO) << "current location is " << current_location[0] << " " << current_location[1];
+        DLOG(INFO) << "current location is " << current_location[0] << " " << current_location[1];
         // int i = 0;
         // for (const auto &element : ref_trajectory)
         // {
@@ -637,6 +655,7 @@ namespace adaptive_open_local_planner
     //  good
     double MPC::findDistance(const VectorX &p1, const VectorX &p2)
     {
+        // DLOG(INFO) << "findDistance";
         double result;
         result = std::sqrt((p1[0] - p2[0]) * (p1[0] - p2[0]) + (p1[1] - p2[1]) * (p1[1] - p2[1]));
         // DLOG(INFO) << "p1 is " << p1[0] << " " << p1[1];
@@ -647,6 +666,7 @@ namespace adaptive_open_local_planner
     // good
     double MPC::findLength(const std::vector<VectorX> &ref_trajectory, const int &closest_index)
     {
+        // DLOG(INFO) << "findLength";
         double length = 0;
         for (size_t i = 0; i < closest_index; i++)
         {
@@ -658,6 +678,7 @@ namespace adaptive_open_local_planner
     // good
     VectorX MPC::interpolate(const float &distance)
     {
+        DLOG(INFO) << "interpolate";
         VectorX point;
         if (distance <= 0)
         {
@@ -695,6 +716,7 @@ namespace adaptive_open_local_planner
     // good
     VectorX MPC::interpolate(const VectorX &x0, const VectorX &x1, const double &distance)
     {
+        DLOG(INFO) << "interpolate";
         VectorX point;
         double direction, total_distance = findDistance(x0, x1);
         if (x1[0] == x0[0])
@@ -724,6 +746,7 @@ namespace adaptive_open_local_planner
 
     double MPC::findCost(const Eigen::SparseMatrix<double> &hessian, const Eigen::VectorXd &control_vec, const Eigen::VectorXd &gradient_matrix)
     {
+        DLOG(INFO) << "findCost";
         auto control_vec_t = control_vec.transpose();
         auto gradient_matrix_t = gradient_matrix.transpose();
         auto cost = 0.5 * control_vec_t * hessian * control_vec + gradient_matrix_t * control_vec;

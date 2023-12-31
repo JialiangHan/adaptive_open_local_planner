@@ -210,6 +210,8 @@ namespace adaptive_open_local_planner
 
         bool publishAckermanncmdstate(const Eigen::Vector4d &predicted_state);
 
+        std::vector<Eigen::Vector4d> fakeTrajectory();
+
     private:
         // Definition of member variables
 

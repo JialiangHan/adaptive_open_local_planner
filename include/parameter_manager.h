@@ -90,8 +90,8 @@ namespace adaptive_open_local_planner
     float min_linear_acceleration;
 
     int predicted_length;
-    float rho;
-    float rhoN;
+    float heading_weighting;
+    float last_heading_weighting;
     // factor to control how much sub path you want to divide, it is K in the paper, should be larger than zero, smaller than one.
     float path_divide_factor;
     int number_of_particle;
@@ -178,8 +178,8 @@ namespace adaptive_open_local_planner
 
       number_of_particle = 1000;
       predicted_length = 20;
-      rho = 1;
-      rhoN = 1;
+      heading_weighting = 1;
+      last_heading_weighting = 1;
     }
 
     /**

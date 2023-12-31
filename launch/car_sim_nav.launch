@@ -8,11 +8,11 @@
       <arg name="world_name" value="$(find adaptive_open_local_planner)/worlds/$(arg world_name).sdf"/>
     <arg name="gui" value="$(arg gui)"/>
   </include>
-
+<!-- robot initial position in gazebo -->
   <arg name="x" default="2"/>
-  <arg name="y" default="3.5"/>
+  <arg name="y" default="-3.2"/>
   <arg name="z" default="0.05"/>
-  <arg name="roll" default="90"/>
+  <arg name="roll" default="-45"/>
   <arg name="pitch" default="0"/>
   <arg name="yaw" default="0"/>
 

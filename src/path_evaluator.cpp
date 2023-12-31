@@ -217,4 +217,41 @@ namespace adaptive_open_local_planner
         std::vector<std::string> title_vec = {"position error", "heading error", "velocity error", "speed", "steering angle"};
         Plot(title_vec);
     }
+
+    void PathEvaluator::Plot(const std::vector<Eigen::Vector4d> &path1, const Eigen::MatrixXd &path2)
+    {
+        DLOG(INFO) << "Plot";
+        matplotlibcpp::ion();
+        matplotlibcpp::clf();
+        std::vector<float> x1, y1, x2, y2;
+        for (int i = 0; i < path1.size(); i++)
+        {
+            x1.emplace_back(path1[i](1));
+            y1.emplace_back(path1[i](0));
+            x2.emplace_back(path2.col(i)(1));
+            y2.emplace_back(path2.col(i)(0));
+            DLOG(INFO) << "ref path is " << x1[i] << " " << y1[i] << " " << path1[i](2) << " " << path1[i](3);
+            DLOG(INFO) << "mpc path is " << x2[i] << " " << y2[i] << " " << path2.col(i)(2) << " " << path2.col(i)(3);
+        }
+
+        matplotlibcpp::plot(x1, y1, {{"label", "ref path"}});
+        matplotlibcpp::plot(x2, y2, {{"label", "mpc path"}});
+
+        matplotlibcpp::legend({{"loc", "upper right"}});
+        // DLOG(INFO) << "Plot curvature for topic: " << curvature_vec.first;
+
+        matplotlibcpp::title("path");
+        matplotlibcpp::grid(true);
+
+        matplotlibcpp::pause(0.1);
+        std::string file_name = "path";
+
+        std::string path = "/home/jialiang/Code/thesis_ws/src/adaptive_open_local_planner/tests/";
+
+        auto now = std::time(0);
+        std::string time_mark = std::to_string(now);
+
+        std::filesystem::create_directory(path);
+        matplotlibcpp::save(path + file_name + time_mark + ".png");
+    }
 }

@@ -63,7 +63,7 @@ namespace adaptive_open_local_planner
                 velocity_error_topic = "velocity_error";
                 path_evaluator_ptr_.reset(new PathEvaluator(path_topic, cmd_topic, jerk_topic, cost_topic, position_error_topic, heading_error_topic, velocity_error_topic, params_.ackermann_cmd_topic));
             }
-            mpc_.initialize(params_.wheelbase_length, 1 / params_.planning_frequency, params_.control_delay, params_.predicted_length, params_.rho, params_.rhoN, params_.max_linear_velocity, params_.max_linear_acceleration, params_.max_steer_angle, params_.max_angular_acceleration, params_.evaluate_path);
+            mpc_.initialize(params_.wheelbase_length, 1 / params_.planning_frequency, params_.control_delay, params_.predicted_length, params_.heading_weighting, params_.last_heading_weighting, params_.max_linear_velocity, params_.max_linear_acceleration, params_.max_steer_angle, params_.max_angular_acceleration, params_.evaluate_path);
             // DLOG(INFO) << "max linear velocity is " << params_.max_linear_velocity;
 
             velocity_planner_ptr_.reset(new VelocityPlanner(params_.path_divide_factor, params_.max_linear_velocity, params_.min_linear_velocity, params_.max_angular_acceleration, params_.min_angular_acceleration, params_.max_linear_acceleration, params_.min_linear_acceleration, params_.weighting, params_.personal_learning_rate, params_.global_learning_rate, params_.cost_difference_boundary, params_.max_interation, params_.number_of_particle));
@@ -195,12 +195,15 @@ namespace adaptive_open_local_planner
         float velocity, steering_angle_rate;
         std::vector<Waypoint> waypoint_vec = calculateVelocityAndSteeringAngleRate(best_path, velocity, steering_angle_rate);
         std::vector<Eigen::Vector4d> trajectory = convertTrajectory(waypoint_vec);
+        // trajectory = fakeTrajectory();
         mpc_.inputRefTrajectory(trajectory);
         Eigen::Vector4d current_state(current_state_in_map_frame_.x, current_state_in_map_frame_.y, current_state_in_map_frame_.yaw, current_state_in_map_frame_.speed);
         Eigen::Vector2d control_vec = mpc_.output(current_state);
         goalCheck();
 
         Eigen::MatrixXd predictedState = mpc_.getPredictedState();
+
+        path_evaluator_ptr_->Plot(trajectory, predictedState);
         // cmd_vel.twist.linear.x = current_state_in_map_frame_.speed + control_vec[0] * 1 / params_.planning_frequency;
         // cmd_vel.twist.linear.y = 0;
         // cmd_vel.twist.angular.z = control_vec[1] * params_.planning_frequency;
@@ -219,7 +222,7 @@ namespace adaptive_open_local_planner
         // double turn = control_vec[1] * params_.planning_frequency;
         double turn = predicted_state[2] - current_state_in_map_frame_.yaw;
         // DLOG(INFO) << "current speed is " << current_state_in_map_frame_.speed << " predicted speed is " << speed;
-        DLOG(INFO) << "speed command is " << speed << " steering angle command is " << turn;
+        // DLOG(INFO) << "speed command is " << speed << " steering angle command is " << turn;
 
         ackermann_msgs::AckermannDriveStamped msg;
         msg.header.stamp = ros::Time::now();
@@ -1135,6 +1138,23 @@ namespace adaptive_open_local_planner
             vec.emplace_back(waypoint);
         }
 
+        return vec;
+    }
+
+    std::vector<Eigen::Vector4d> AdaptiveOpenLocalPlannerROS::fakeTrajectory()
+    {
+        std::vector<Eigen::Vector4d> vec;
+        Eigen::Vector4d point;
+        float x, y, heading, velocity;
+        for (size_t i = 0; i < 100; i++)
+        {
+            x = 5.5;
+            y = 1 + 0.1 * i;
+            heading = 1.57;
+            velocity = 1;
+            point << x, y, heading, velocity;
+            vec.emplace_back(point);
+        }
         return vec;
     }
 

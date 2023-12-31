@@ -11,7 +11,7 @@ AdaptiveOpenLocalPlannerROS:
   box_obstacle_rviz_topic : box_obstacle_rviz
   ackermann_cmd_topic : ackermann_cmd_mux/output
 
-  planning_frequency : 10
+
 
   # length of local trajectory roll outs
   max_local_plan_distance : 12
@@ -70,7 +70,9 @@ AdaptiveOpenLocalPlannerROS:
 
   path_divide_factor: 0.4
 #  MPC
-  predicted_length: 1
+  predicted_length: 10
+  # not used
   control_delay: 1
-  rho: 1
-  rhoN: 1
+  heading_weighting: 0
+  last_heading_weighting: 0
+  planning_frequency : 1.5

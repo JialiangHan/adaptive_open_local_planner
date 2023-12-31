@@ -105,4 +105,19 @@ target_link_libraries(adaptive_open_local_planner
        OsqpEigen::OsqpEigen 
 )
 
+add_executable(test_mpc tests/test.cpp   src/obstacles.cpp
+src/planner_helpers.cpp
+src/visualization_helpers.cpp
+src/parameter_manager.cpp
+src/path_evaluator.cpp
+src/velocity_planner.cpp
+src/pso.cpp
+src/mpc.cpp)
+target_link_libraries(test_mpc
+  ${EXTERNAL_LIBS}
+  ${catkin_LIBRARIES}
+  glog::glog 
+  ${PYTHON_LIBRARIES}   
+  OsqpEigen::OsqpEigen 
+   ) 
 

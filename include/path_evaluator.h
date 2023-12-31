@@ -70,6 +70,8 @@ namespace adaptive_open_local_planner
 
         void EvaluateControl();
 
+        void Plot(const std::vector<Eigen::Vector4d> &path1, const Eigen::MatrixXd &path2);
+
     private:
         ros::NodeHandle nh_;
 
@@ -99,6 +101,8 @@ namespace adaptive_open_local_planner
         std::vector<float> jerk_vec_;
 
         std::vector<float> cost_vec_;
+
+        // std::vector<float> path_vec_;
 
         std::vector<float> position_error_vec_;
         std::vector<float> heading_error_vec_;
