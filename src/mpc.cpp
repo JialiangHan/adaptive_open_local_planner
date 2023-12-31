@@ -3,7 +3,7 @@
 namespace adaptive_open_local_planner
 {
     // good
-    void MPC::initialize(const double &vehicle_length, const double &dt, const double &delay, const int &predict_length, const double &heading_weighting, const double &last_heading_weighting, const double &v_max, const double &a_max, const double &steering_angle_max, const double &steering_angle_rate_max, bool evaluate_path)
+    void MPC::initialize(const double &vehicle_length, const double &dt, const double &delay, const int &predict_length, const double &heading_weighting, const double &last_heading_weighting, const double &speed_weighting, const double &v_max, const double &a_max, const double &steering_angle_max, const double &steering_angle_rate_max, bool evaluate_path)
     {
         DLOG(INFO) << "initialize";
         // vehicle length
@@ -16,6 +16,7 @@ namespace adaptive_open_local_planner
         N_ = predict_length;
         heading_weighting_ = heading_weighting;
         last_heading_weighting_ = last_heading_weighting;
+        speed_weighting_ = speed_weighting;
         v_max_ = v_max;
         a_max_ = a_max;
         steering_angle_max_ = steering_angle_max;

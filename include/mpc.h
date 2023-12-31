@@ -23,7 +23,7 @@ namespace adaptive_open_local_planner
     class MPC
     {
     public:
-        void initialize(const double &vehicle_length, const double &dt, const double &delay, const int &predict_length, const double &heading_weighting, const double &last_heading_weighting, const double &v_max, const double &a_max, const double &steering_angle_max, const double &steering_angle_rate_max, bool evaluate_path);
+        void initialize(const double &vehicle_length, const double &dt, const double &delay, const int &predict_length, const double &heading_weighting, const double &last_heading_weighting, const double &speed_weighting, const double &v_max, const double &a_max, const double &steering_angle_max, const double &steering_angle_rate_max, bool evaluate_path);
 
         bool inputRefTrajectory(const std::vector<VectorX> &ref_trajectory);
 
@@ -204,6 +204,7 @@ namespace adaptive_open_local_planner
         // some parameters
         double heading_weighting_;
         double last_heading_weighting_;
+        double speed_weighting_;
         double v_max_;
         double a_max_;
         double steering_angle_max_;

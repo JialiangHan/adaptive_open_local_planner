@@ -64,7 +64,7 @@ void Plot(const std::vector<Eigen::Vector4d> &path1, const Eigen::MatrixXd &path
     matplotlibcpp::subplot(2, 2, 3);
     matplotlibcpp::plot(velocity1, {{"label", "ref path"}});
     matplotlibcpp::plot(velocity2, {{"label", "mpc path"}});
-    // matplotlibcpp::ylim(0, 10);
+    matplotlibcpp::ylim(0.0, 1.5);
     matplotlibcpp::legend({{"loc", "upper right"}});
     matplotlibcpp::title("velocity");
     matplotlibcpp::grid(true);
@@ -106,8 +106,9 @@ int main(int argc, char **argv)
     int predicted_length = 20;
     double heading_weighting = 1;
     double last_heading_weighting = 1;
+    double speed_weighting = 10;
     // DLOG(INFO) << "1 / planning_frequency is " << 1.0 / planning_frequency;
-    mpc_.initialize(wheelbase_length, 1.0 / planning_frequency, control_delay, predicted_length, heading_weighting, last_heading_weighting, max_linear_velocity, max_linear_acceleration, max_steer_angle, max_angular_acceleration, false);
+    mpc_.initialize(wheelbase_length, 1.0 / planning_frequency, control_delay, predicted_length, heading_weighting, last_heading_weighting, speed_weighting, max_linear_velocity, max_linear_acceleration, max_steer_angle, max_angular_acceleration, false);
 
     std::vector<Eigen::Vector4d> trajectory = fakeTrajectory();
     mpc_.inputRefTrajectory(trajectory);
