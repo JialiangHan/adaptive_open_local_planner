@@ -265,20 +265,40 @@ namespace adaptive_open_local_planner
         DLOG(INFO) << "Plot";
         matplotlibcpp::ion();
         matplotlibcpp::clf();
-        std::vector<float> x1, y1, x2, y2;
-        for (int i = 0; i < path1.size(); i++)
+        std::vector<float> x1, y1, x2, y2, ref_heading, mpc_heading, ref_velocity, mpc_velocity;
+        for (int i = 0; i < path2.cols(); i++)
         {
             x1.emplace_back(path1[i](1));
             y1.emplace_back(path1[i](0));
+            ref_heading.emplace_back(path1[i](2));
+            ref_velocity.emplace_back(path1[i](3));
             x2.emplace_back(path2.col(i)(1));
             y2.emplace_back(path2.col(i)(0));
+            mpc_heading.emplace_back(path2.col(i)(2));
+            mpc_velocity.emplace_back(path2.col(i)(3));
             DLOG(INFO) << "ref path is " << x1[i] << " " << y1[i] << " " << path1[i](2) << " " << path1[i](3);
             DLOG(INFO) << "mpc path is " << x2[i] << " " << y2[i] << " " << path2.col(i)(2) << " " << path2.col(i)(3);
         }
 
+        matplotlibcpp::subplot(2, 2, 1);
+        // path
         matplotlibcpp::plot(x1, y1, {{"label", "ref path"}});
         matplotlibcpp::plot(x2, y2, {{"label", "mpc path"}});
-
+        matplotlibcpp::plot(actual_position_x_vec_, actual_position_y_vec_, {{"label", "actual path"}});
+        matplotlibcpp::legend({{"loc", "upper right"}});
+        // DLOG(INFO) << "Plot curvature for topic: " << curvature_vec.first;
+        matplotlibcpp::subplot(2, 2, 2);
+        // heading
+        matplotlibcpp::plot(ref_heading, {{"label", "ref heading"}});
+        matplotlibcpp::plot(mpc_heading, {{"label", "mpc heading"}});
+        matplotlibcpp::plot(actual_heading_vec_, {{"label", "actual heading"}});
+        matplotlibcpp::legend({{"loc", "upper right"}});
+        // DLOG(INFO) << "Plot curvature for topic: " << curvature_vec.first;
+        matplotlibcpp::subplot(2, 2, 3);
+        // velocity
+        matplotlibcpp::plot(ref_velocity, {{"label", "ref velocity"}});
+        matplotlibcpp::plot(mpc_velocity, {{"label", "mpc velocity"}});
+        matplotlibcpp::plot(actual_velocity_vec_, {{"label", "actual velocity"}});
         matplotlibcpp::legend({{"loc", "upper right"}});
         // DLOG(INFO) << "Plot curvature for topic: " << curvature_vec.first;
 
