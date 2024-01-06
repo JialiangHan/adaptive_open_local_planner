@@ -23,6 +23,48 @@ namespace adaptive_open_local_planner
         linear_velocity_vec_.emplace_back(cmd->linear.x);
         angular_velocity_vec_.emplace_back(cmd->angular.z);
         // DLOG(INFO) << "set speed";
+        float actual_speed = 0;
+        move_flag__mutex_.lock();
+        if (move_flag_)
+        {
+            actual_speed = std::sqrt(cmd->linear.x * cmd->linear.x + cmd->linear.y * cmd->linear.y);
+            actual_velocity_vec_.emplace_back(actual_speed);
+        }
+        move_flag__mutex_.unlock();
+    }
+
+    void PathEvaluator::CallbackPose(const geometry_msgs::PoseStamped::ConstPtr &pose, const std::string &topic_name)
+    {
+        float current_heading = tf::getYaw(pose->pose.orientation);
+        move_flag__mutex_.lock();
+        if (actual_position_x_vec_.size() == 0)
+        {
+            last_x_ = pose->pose.position.x;
+            last_y_ = pose->pose.position.y;
+            actual_position_x_vec_.emplace_back(last_x_);
+            actual_position_y_vec_.emplace_back(last_y_);
+            actual_heading_vec_.emplace_back(current_heading);
+            move_flag_ = true;
+        }
+        else
+        {
+            if (std::abs(last_x_ - pose->pose.position.x) < 1e-2 ||
+                std::abs(last_y_ - pose->pose.position.y) < 1e-2)
+            {
+                move_flag_ = false;
+            }
+            else
+            {
+                move_flag_ = true;
+                actual_position_x_vec_.emplace_back(pose->pose.position.x);
+                actual_position_y_vec_.emplace_back(pose->pose.position.y);
+                actual_heading_vec_.emplace_back(current_heading);
+                last_x_ = pose->pose.position.x;
+                last_y_ = pose->pose.position.y;
+            }
+        }
+
+        move_flag__mutex_.unlock();
     }
 
     void PathEvaluator::CallbackPositionError(const std_msgs::Float32::ConstPtr &position_error, const std::string &topic_name)
@@ -45,8 +87,8 @@ namespace adaptive_open_local_planner
 
     void PathEvaluator::CallbackAckermann(const ackermann_msgs::AckermannDriveStamped::ConstPtr &ackermann, const std::string &topic_name)
     {
-        steering_angle_vec_.emplace_back(ackermann->drive.steering_angle);
-        speed_vec_.emplace_back(ackermann->drive.speed);
+        command_steering_angle_vec_.emplace_back(ackermann->drive.steering_angle);
+        command_speed_vec_.emplace_back(ackermann->drive.speed);
     }
 
     void PathEvaluator::CallbackJerk(const std_msgs::Float32::ConstPtr &jerk, const std::string &topic_name)
@@ -173,11 +215,11 @@ namespace adaptive_open_local_planner
             }
             if (title_vec[i] == "steering angle")
             {
-                vec = steering_angle_vec_;
+                vec = command_steering_angle_vec_;
             }
             if (title_vec[i] == "speed")
             {
-                vec = speed_vec_;
+                vec = command_speed_vec_;
             }
 
             matplotlibcpp::plot(vec, {{"label", "raw path"}});

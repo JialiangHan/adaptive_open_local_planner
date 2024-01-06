@@ -73,7 +73,7 @@ AdaptiveOpenLocalPlannerROS:
   predicted_length: 10
   # not used
   control_delay: 1
-  heading_weighting: 0
-  last_heading_weighting: 0
-  speed_weighting: 0
+  heading_weighting: 1
+  last_heading_weighting: 1
+  speed_weighting: 5
   planning_frequency : 1.5

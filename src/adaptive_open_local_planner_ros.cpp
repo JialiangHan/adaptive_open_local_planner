@@ -61,7 +61,7 @@ namespace adaptive_open_local_planner
                 position_error_topic = "position_error";
                 heading_error_topic = "heading_error";
                 velocity_error_topic = "velocity_error";
-                path_evaluator_ptr_.reset(new PathEvaluator(path_topic, cmd_topic, jerk_topic, cost_topic, position_error_topic, heading_error_topic, velocity_error_topic, params_.ackermann_cmd_topic));
+                path_evaluator_ptr_.reset(new PathEvaluator(path_topic, params_.odom_topic, jerk_topic, cost_topic, position_error_topic, heading_error_topic, velocity_error_topic, params_.ackermann_cmd_topic, params_.current_pose_rviz_topic));
             }
             mpc_.initialize(params_.wheelbase_length, 1 / params_.planning_frequency, params_.control_delay, params_.predicted_length, params_.heading_weighting, params_.last_heading_weighting, params_.speed_weighting, params_.max_linear_velocity, params_.max_linear_acceleration, params_.max_steer_angle, params_.max_angular_acceleration, params_.evaluate_path);
             // DLOG(INFO) << "max linear velocity is " << params_.max_linear_velocity;
@@ -195,11 +195,13 @@ namespace adaptive_open_local_planner
         float velocity, steering_angle_rate;
         std::vector<Waypoint> waypoint_vec = calculateVelocityAndSteeringAngleRate(best_path, velocity, steering_angle_rate);
         std::vector<Eigen::Vector4d> trajectory = convertTrajectory(waypoint_vec);
-        // trajectory = fakeTrajectory();
-        mpc_.inputRefTrajectory(trajectory);
         Eigen::Vector4d current_state(current_state_in_map_frame_.x, current_state_in_map_frame_.y, current_state_in_map_frame_.yaw, current_state_in_map_frame_.speed);
+        trajectory = fakeTrajectory(current_state);
+        mpc_.inputRefTrajectory(trajectory);
+
         Eigen::Vector2d control_vec = mpc_.output(current_state);
-        goalCheck();
+        // goalCheck();
+        goalCheck(trajectory);
 
         Eigen::MatrixXd predictedState = mpc_.getPredictedState();
 
@@ -222,7 +224,7 @@ namespace adaptive_open_local_planner
         // double turn = control_vec[1] * params_.planning_frequency;
         double turn = predicted_state[2] - current_state_in_map_frame_.yaw;
         // DLOG(INFO) << "current speed is " << current_state_in_map_frame_.speed << " predicted speed is " << speed;
-        // DLOG(INFO) << "speed command is " << speed << " steering angle command is " << turn;
+        DLOG(INFO) << "speed command is " << speed << " steering angle command is " << turn;
 
         ackermann_msgs::AckermannDriveStamped msg;
         msg.header.stamp = ros::Time::now();
@@ -1141,21 +1143,52 @@ namespace adaptive_open_local_planner
         return vec;
     }
 
-    std::vector<Eigen::Vector4d> AdaptiveOpenLocalPlannerROS::fakeTrajectory()
+    std::vector<Eigen::Vector4d> AdaptiveOpenLocalPlannerROS::fakeTrajectory(const Eigen::Vector4d &current_state)
     {
+        // use current state to cut off the fake trajectory
         std::vector<Eigen::Vector4d> vec;
         Eigen::Vector4d point;
         float x, y, heading, velocity;
-        for (size_t i = 0; i < 100; i++)
+        for (size_t i = 0; i < 50; i++)
         {
             x = 5.5;
             y = 1 + 0.1 * i;
             heading = 1.57;
             velocity = 1;
+            if (y < current_state(1))
+            {
+                continue;
+            }
+
             point << x, y, heading, velocity;
             vec.emplace_back(point);
         }
+        // DLOG(INFO) << "current position is " << current_state[0] << " " << current_state[1] << " heading is " << current_state[2] << " speed is " << current_state[3];
+        // for (const auto &element : vec)
+        // {
+        //     DLOG(INFO) << "ref element is " << element[0] << " " << element[1] << " heading is " << element[2] << " speed is " << element[3];
+        // }
         return vec;
+    }
+
+    bool AdaptiveOpenLocalPlannerROS::goalCheck(const std::vector<Eigen::Vector4d> &trajectory)
+    {
+
+        double dx = trajectory.back()[0] - robot_pose_.x();
+        double dy = trajectory.back()[1] - robot_pose_.y();
+        double delta_orient = g2o::normalize_theta(trajectory.back()[2] - robot_pose_.theta());
+
+        if (fabs(std::sqrt(dx * dx + dy * dy)) < params_.xy_goal_tolerance && fabs(delta_orient) < params_.yaw_goal_tolerance)
+        {
+            goal_reached_ = true;
+            DLOG(INFO) << "Goal reached! current pose is " << robot_pose_.x() << " " << robot_pose_.y() << " " << robot_pose_.theta();
+            return true;
+        }
+        else
+        {
+            // DLOG(INFO) << "Goal not reached! current pose is " << robot_pose_.x() << " " << robot_pose_.y() << " " << robot_pose_.theta() << " goal pose is " << global_goal.pose.position.x << " " << global_goal.pose.position.y << " " << tf2::getYaw(global_goal.pose.orientation);
+            return false;
+        }
     }
 
 } // end namespace adaptive_open_local_planner

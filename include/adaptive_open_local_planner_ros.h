@@ -135,6 +135,8 @@ namespace adaptive_open_local_planner
 
         std::vector<std::pair<float, float>> getJerk(const std::vector<Waypoint> &waypoint_vec);
 
+        bool goalCheck(const std::vector<Eigen::Vector4d> &trajectory);
+
     protected:
         /**
          * @brief Update internal obstacle vector based on occupied costmap cells
@@ -210,7 +212,7 @@ namespace adaptive_open_local_planner
 
         bool publishAckermanncmdstate(const Eigen::Vector4d &predicted_state);
 
-        std::vector<Eigen::Vector4d> fakeTrajectory();
+        std::vector<Eigen::Vector4d> fakeTrajectory(const Eigen::Vector4d &current_state);
 
     private:
         // Definition of member variables
