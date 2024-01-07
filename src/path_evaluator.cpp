@@ -284,7 +284,7 @@ namespace adaptive_open_local_planner
         // path
         matplotlibcpp::plot(x1, y1, {{"label", "ref path"}});
         matplotlibcpp::plot(x2, y2, {{"label", "mpc path"}});
-        matplotlibcpp::plot(actual_position_x_vec_, actual_position_y_vec_, {{"label", "actual path"}});
+        matplotlibcpp::plot(actual_position_y_vec_, actual_position_x_vec_, {{"label", "actual path"}});
         matplotlibcpp::legend({{"loc", "upper right"}});
         // DLOG(INFO) << "Plot curvature for topic: " << curvature_vec.first;
         matplotlibcpp::subplot(2, 2, 2);
