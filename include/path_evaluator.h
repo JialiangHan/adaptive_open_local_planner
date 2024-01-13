@@ -29,10 +29,10 @@ namespace adaptive_open_local_planner
     {
     public:
         PathEvaluator(){};
-        PathEvaluator(const std::string &path_topic, const std::string &cmd_topic, const std::string &jerk_topic, const std::string &cost_topic, const std::string &position_error_topic, const std::string &heading_error_topic, const std::string &velocity_error_topic, const std::string &ackermann_topic, const std::string &pose_topic)
+        PathEvaluator(const std::string &path_topic, const std::string &cmd_topic, const std::string &jerk_topic, const std::string &cost_topic, const std::string &position_error_topic, const std::string &heading_error_topic, const std::string &velocity_error_topic, const std::string &ackermann_topic, const std::string &pose_topic, const std::string &odom_topic)
         {
             sub_path_ = nh_.subscribe<nav_msgs::Path>(path_topic, 1, boost::bind(&PathEvaluator::CallbackPath, this, _1, path_topic));
-            sub_cmd_ = nh_.subscribe<geometry_msgs::Twist>(cmd_topic, 1, boost::bind(&PathEvaluator::CallbackCmd, this, _1, cmd_topic));
+            // sub_cmd_ = nh_.subscribe<geometry_msgs::Twist>(cmd_topic, 1, boost::bind(&PathEvaluator::CallbackCmd, this, _1, cmd_topic));
 
             sub_jerk_ = nh_.subscribe<std_msgs::Float32>(jerk_topic, 1, boost::bind(&PathEvaluator::CallbackJerk, this, _1, jerk_topic));
             sub_cost_ = nh_.subscribe<std_msgs::Float32>(cost_topic, 1, boost::bind(&PathEvaluator::CalculateCost, this, _1, cost_topic));
@@ -44,8 +44,12 @@ namespace adaptive_open_local_planner
             sub_ackermann_ = nh_.subscribe<ackermann_msgs::AckermannDriveStamped>(ackermann_topic, 1, boost::bind(&PathEvaluator::CallbackAckermann, this, _1, ackermann_topic));
 
             sub_pose_ = nh_.subscribe<geometry_msgs::PoseStamped>(pose_topic, 1, boost::bind(&PathEvaluator::CallbackPose, this, _1, pose_topic));
+
+            sub_odom_ = nh_.subscribe<nav_msgs::Odometry>(odom_topic, 1, boost::bind(&PathEvaluator::CallbackOdom, this, _1, odom_topic));
         };
         void CallbackPose(const geometry_msgs::PoseStamped::ConstPtr &pose, const std::string &topic_name);
+
+        void CallbackOdom(const nav_msgs::Odometry::ConstPtr &odom, const std::string &topic_name);
 
         void CallbackPath(const nav_msgs::Path::ConstPtr &path, const std::string &topic_name);
 
@@ -93,6 +97,7 @@ namespace adaptive_open_local_planner
         ros::Subscriber sub_velocity_error_;
         ros::Subscriber sub_ackermann_;
         ros::Subscriber sub_pose_;
+        ros::Subscriber sub_odom_;
 
         std::vector<Eigen::Vector3f> path_;
 
@@ -125,10 +130,10 @@ namespace adaptive_open_local_planner
 
         std::string path_topic_;
 
-        float last_x_, last_y_;
+        float last_x_, last_y_, last_speed_;
 
-        bool move_flag_;
+        // bool move_flag_;
 
-        boost::mutex move_flag__mutex_;
+        // boost::mutex move_flag__mutex_;
     };
 }

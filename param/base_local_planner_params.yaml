@@ -71,8 +71,7 @@ AdaptiveOpenLocalPlannerROS:
   path_divide_factor: 0.4
 #  MPC
   predicted_length: 10
-  # not used
-  control_delay: 1
+  control_delay: 0.2
   heading_weighting: 1
   last_heading_weighting: 1
   speed_weighting: 5

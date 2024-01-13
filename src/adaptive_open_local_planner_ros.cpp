@@ -61,7 +61,8 @@ namespace adaptive_open_local_planner
                 position_error_topic = "position_error";
                 heading_error_topic = "heading_error";
                 velocity_error_topic = "velocity_error";
-                path_evaluator_ptr_.reset(new PathEvaluator(path_topic, cmd_topic, jerk_topic, cost_topic, position_error_topic, heading_error_topic, velocity_error_topic, params_.ackermann_cmd_topic, params_.current_pose_rviz_topic));
+
+                path_evaluator_ptr_.reset(new PathEvaluator(path_topic, cmd_topic, jerk_topic, cost_topic, position_error_topic, heading_error_topic, velocity_error_topic, params_.ackermann_cmd_topic, params_.current_pose_rviz_topic, params_.odom_topic));
             }
             mpc_.initialize(params_.wheelbase_length, 1 / params_.planning_frequency, params_.control_delay, params_.predicted_length, params_.heading_weighting, params_.last_heading_weighting, params_.speed_weighting, params_.max_linear_velocity, params_.max_linear_acceleration, params_.max_steer_angle, params_.max_angular_acceleration, params_.evaluate_path);
             // DLOG(INFO) << "max linear velocity is " << params_.max_linear_velocity;
@@ -1177,7 +1178,7 @@ namespace adaptive_open_local_planner
         double dx = trajectory.back()[0] - robot_pose_.x();
         double dy = trajectory.back()[1] - robot_pose_.y();
         double delta_orient = g2o::normalize_theta(trajectory.back()[2] - robot_pose_.theta());
-
+        DLOG(INFO) << "current pose is " << robot_pose_.x() << " " << robot_pose_.y() << " " << robot_pose_.theta() << " goal is " << trajectory.back()[0] << " " << trajectory.back()[1] << " " << trajectory.back()[2];
         if (fabs(std::sqrt(dx * dx + dy * dy)) < params_.xy_goal_tolerance && fabs(delta_orient) < params_.yaw_goal_tolerance)
         {
             goal_reached_ = true;

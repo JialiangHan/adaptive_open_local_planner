@@ -18,25 +18,54 @@ namespace adaptive_open_local_planner
         // DLOG(INFO) << "set path";
     }
 
+    void PathEvaluator::CallbackOdom(const nav_msgs::Odometry::ConstPtr &odom_msg, const std::string &topic_name)
+    {
+        // DLOG(INFO) << "x speed is " << odom_msg->twist.twist.linear.x << " y speed is " << odom_msg->twist.twist.linear.y << " z speed is " << odom_msg->twist.twist.linear.z;
+        float vehicle_speed_sum =
+            std::sqrt(odom_msg->twist.twist.linear.x * odom_msg->twist.twist.linear.x + odom_msg->twist.twist.linear.y * odom_msg->twist.twist.linear.y);
+
+        // DLOG(INFO) << "last speed is " << last_speed_ << " current speed is " << vehicle_speed_sum;
+        if (std::abs(vehicle_speed_sum - last_speed_) > 5e-2)
+        {
+            // DLOG(INFO) << "last speed is " << last_speed_ << " current speed is " << vehicle_speed_sum << " delta is " << std::abs(vehicle_speed_sum - last_speed_);
+            actual_velocity_vec_.emplace_back(vehicle_speed_sum);
+        }
+
+        // actual_velocity_vec_.emplace_back(actual_speed);
+        last_speed_ = vehicle_speed_sum;
+        // }
+        // move_flag__mutex_.unlock();
+    }
     void PathEvaluator::CallbackCmd(const geometry_msgs::Twist::ConstPtr &cmd, const std::string &topic_name)
     {
+        // DLOG(INFO) << "x speed is " << cmd->linear.x << " y speed is " << cmd->linear.y << " z speed is " << cmd->linear.z;
         linear_velocity_vec_.emplace_back(cmd->linear.x);
         angular_velocity_vec_.emplace_back(cmd->angular.z);
         // DLOG(INFO) << "set speed";
         float actual_speed = 0;
-        move_flag__mutex_.lock();
-        if (move_flag_)
+        // DLOG(INFO) << "move flag is " << move_flag_;
+        // move_flag__mutex_.lock();
+        // DLOG(INFO) << "move flag is " << move_flag_;
+        // if (move_flag_)
+        // {
+        // DLOG(INFO) << "moving, set speed;";
+        actual_speed = std::sqrt(cmd->linear.x * cmd->linear.x + cmd->linear.y * cmd->linear.y);
+        // DLOG(INFO) << "last speed is " << last_speed_ << " current speed is " << actual_speed;
+        if (std::abs(actual_speed - last_speed_) > 1e-2)
         {
-            actual_speed = std::sqrt(cmd->linear.x * cmd->linear.x + cmd->linear.y * cmd->linear.y);
             actual_velocity_vec_.emplace_back(actual_speed);
         }
-        move_flag__mutex_.unlock();
+
+        // actual_velocity_vec_.emplace_back(actual_speed);
+        last_speed_ = actual_speed;
+        // }
+        // move_flag__mutex_.unlock();
     }
 
     void PathEvaluator::CallbackPose(const geometry_msgs::PoseStamped::ConstPtr &pose, const std::string &topic_name)
     {
         float current_heading = tf::getYaw(pose->pose.orientation);
-        move_flag__mutex_.lock();
+        // move_flag__mutex_.lock();
         if (actual_position_x_vec_.size() == 0)
         {
             last_x_ = pose->pose.position.x;
@@ -44,27 +73,35 @@ namespace adaptive_open_local_planner
             actual_position_x_vec_.emplace_back(last_x_);
             actual_position_y_vec_.emplace_back(last_y_);
             actual_heading_vec_.emplace_back(current_heading);
-            move_flag_ = true;
+            // move_flag_ = true;
+            // DLOG(INFO) << "moving.";
         }
         else
         {
-            if (std::abs(last_x_ - pose->pose.position.x) < 1e-2 ||
-                std::abs(last_y_ - pose->pose.position.y) < 1e-2)
-            {
-                move_flag_ = false;
-            }
-            else
-            {
-                move_flag_ = true;
-                actual_position_x_vec_.emplace_back(pose->pose.position.x);
-                actual_position_y_vec_.emplace_back(pose->pose.position.y);
-                actual_heading_vec_.emplace_back(current_heading);
-                last_x_ = pose->pose.position.x;
-                last_y_ = pose->pose.position.y;
-            }
+            actual_position_x_vec_.emplace_back(pose->pose.position.x);
+            actual_position_y_vec_.emplace_back(pose->pose.position.y);
+            actual_heading_vec_.emplace_back(current_heading);
+            last_x_ = pose->pose.position.x;
+            last_y_ = pose->pose.position.y;
+            // if (std::abs(last_x_ - pose->pose.position.x) < 1e-1 ||
+            //     std::abs(last_y_ - pose->pose.position.y) < 1e-1)
+            // {
+            //     // move_flag_ = false;
+            //     // DLOG(INFO) << "not move.";
+            // }
+            // else
+            // {
+            //     // DLOG(INFO) << "moving.";
+            //     // move_flag_ = true;
+            //     actual_position_x_vec_.emplace_back(pose->pose.position.x);
+            //     actual_position_y_vec_.emplace_back(pose->pose.position.y);
+            //     actual_heading_vec_.emplace_back(current_heading);
+            //     last_x_ = pose->pose.position.x;
+            //     last_y_ = pose->pose.position.y;
+            // }
         }
 
-        move_flag__mutex_.unlock();
+        // move_flag__mutex_.unlock();
     }
 
     void PathEvaluator::CallbackPositionError(const std_msgs::Float32::ConstPtr &position_error, const std::string &topic_name)
@@ -262,7 +299,7 @@ namespace adaptive_open_local_planner
 
     void PathEvaluator::Plot(const std::vector<Eigen::Vector4d> &path1, const Eigen::MatrixXd &path2)
     {
-        DLOG(INFO) << "Plot";
+        // DLOG(INFO) << "Plot";
         matplotlibcpp::ion();
         matplotlibcpp::clf();
         std::vector<float> x1, y1, x2, y2, ref_heading, mpc_heading, ref_velocity, mpc_velocity;
@@ -276,8 +313,8 @@ namespace adaptive_open_local_planner
             y2.emplace_back(path2.col(i)(0));
             mpc_heading.emplace_back(path2.col(i)(2));
             mpc_velocity.emplace_back(path2.col(i)(3));
-            DLOG(INFO) << "ref path is " << x1[i] << " " << y1[i] << " " << path1[i](2) << " " << path1[i](3);
-            DLOG(INFO) << "mpc path is " << x2[i] << " " << y2[i] << " " << path2.col(i)(2) << " " << path2.col(i)(3);
+            // DLOG(INFO) << "ref path is " << x1[i] << " " << y1[i] << " " << path1[i](2) << " " << path1[i](3);
+            // DLOG(INFO) << "mpc path is " << x2[i] << " " << y2[i] << " " << path2.col(i)(2) << " " << path2.col(i)(3);
         }
 
         matplotlibcpp::subplot(2, 2, 1);
@@ -287,6 +324,9 @@ namespace adaptive_open_local_planner
         matplotlibcpp::plot(actual_position_y_vec_, actual_position_x_vec_, {{"label", "actual path"}});
         matplotlibcpp::legend({{"loc", "upper right"}});
         // DLOG(INFO) << "Plot curvature for topic: " << curvature_vec.first;
+        matplotlibcpp::ylim(0, 10);
+        matplotlibcpp::title("path");
+        matplotlibcpp::grid(true);
         matplotlibcpp::subplot(2, 2, 2);
         // heading
         matplotlibcpp::plot(ref_heading, {{"label", "ref heading"}});
@@ -294,15 +334,18 @@ namespace adaptive_open_local_planner
         matplotlibcpp::plot(actual_heading_vec_, {{"label", "actual heading"}});
         matplotlibcpp::legend({{"loc", "upper right"}});
         // DLOG(INFO) << "Plot curvature for topic: " << curvature_vec.first;
+        matplotlibcpp::ylim(-3, 3);
+        matplotlibcpp::title("heading");
+        matplotlibcpp::grid(true);
         matplotlibcpp::subplot(2, 2, 3);
         // velocity
         matplotlibcpp::plot(ref_velocity, {{"label", "ref velocity"}});
-        matplotlibcpp::plot(mpc_velocity, {{"label", "mpc velocity"}});
+        matplotlibcpp::plot(command_speed_vec_, {{"label", "command velocity"}});
         matplotlibcpp::plot(actual_velocity_vec_, {{"label", "actual velocity"}});
         matplotlibcpp::legend({{"loc", "upper right"}});
         // DLOG(INFO) << "Plot curvature for topic: " << curvature_vec.first;
-
-        matplotlibcpp::title("path");
+        matplotlibcpp::ylim(0.0, 1.5);
+        matplotlibcpp::title("velocity");
         matplotlibcpp::grid(true);
 
         matplotlibcpp::pause(0.1);
