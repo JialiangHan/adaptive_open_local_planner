@@ -1150,7 +1150,7 @@ namespace adaptive_open_local_planner
         std::vector<Eigen::Vector4d> vec;
         Eigen::Vector4d point;
         float x, y, heading, velocity;
-        for (size_t i = 0; i < 50; i++)
+        for (size_t i = 0; i < 20; i++)
         {
             x = 5.5;
             y = 1 + 0.1 * i;
@@ -1164,6 +1164,21 @@ namespace adaptive_open_local_planner
             point << x, y, heading, velocity;
             vec.emplace_back(point);
         }
+        for (size_t i = 0; i < 5; i++)
+        {
+            x = 5.5;
+            y = 2.9 + 0.1 * i;
+            heading = 1.57;
+            velocity = 1 - 0.25 * i;
+            if (y < current_state(1))
+            {
+                continue;
+            }
+
+            point << x, y, heading, velocity;
+            vec.emplace_back(point);
+        }
+
         // DLOG(INFO) << "current position is " << current_state[0] << " " << current_state[1] << " heading is " << current_state[2] << " speed is " << current_state[3];
         // for (const auto &element : vec)
         // {

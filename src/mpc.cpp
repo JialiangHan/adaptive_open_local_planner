@@ -73,8 +73,8 @@ namespace adaptive_open_local_planner
         {
             next = ref_trajectory_[index];
         }
-        // DLOG(INFO) << "current position is " << x0_observe[0] << " " << x0_observe[1] << " heading is " << x0_observe[2] << " speed is " << x0_observe[3];
-        // DLOG(INFO) << "next position is " << next[0] << " " << next[1] << " heading is " << next[2] << " speed is " << next[3];
+        DLOG(INFO) << "current position is " << x0_observe[0] << " " << x0_observe[1] << " heading is " << x0_observe[2] << " speed is " << x0_observe[3];
+        DLOG(INFO) << "next position is " << next[0] << " " << next[1] << " heading is " << next[2] << " speed is " << next[3];
         return next;
     }
 
@@ -82,7 +82,7 @@ namespace adaptive_open_local_planner
     {
         // DLOG(INFO) << "in output";
         VectorU output;
-        // DLOG(INFO) << "current position is " << x0_observe[0] << " " << x0_observe[1] << " heading is " << x0_observe[2] << " speed is " << x0_observe[3];
+        DLOG(INFO) << "current position is " << x0_observe[0] << " " << x0_observe[1] << " heading is " << x0_observe[2] << " speed is " << x0_observe[3];
         VectorX x1 = findNext(x0_observe);
         int status = solveMPC(x1);
         if (status != 1)
@@ -210,27 +210,34 @@ namespace adaptive_open_local_planner
             DLOG(INFO) << "x0_delay is " << x0_delay[0] << " " << x0_delay[1] << " heading is " << x0_delay[2] << " speed is " << x0_delay[3];
             return x0_delay;
         }
-
-        Eigen::MatrixXd BB, AA, gg, x0_pred;
-        int tau = std::ceil(delay_ / dt_);
-        BB.setZero(number_of_state_ * tau, number_of_control_ * tau);
-        AA.setZero(number_of_state_ * tau, number_of_state_);
-        gg.setZero(number_of_state_ * tau, 1);
-        x0_pred.setZero(number_of_state_ * tau, 1);
-        std::vector<Eigen::MatrixXd> matrix_vec = setupBBAAggmatrix(tau, x0);
-        BB = matrix_vec[0];
-        AA = matrix_vec[1];
-        gg = matrix_vec[2];
-        Eigen::VectorXd uu(number_of_control_ * tau, 1);
-        for (double t = delay_; t > 0; t -= dt_)
+        if (predictMat_.cols() <= 0)
         {
-            int i = std::ceil(t / dt_);
-            uu.coeffRef((tau - i) * number_of_control_ + 0, 0) = historyInput_[i - 1][0];
-            uu.coeffRef((tau - i) * number_of_control_ + 1, 0) = historyInput_[i - 1][1];
+            DLOG(INFO) << "predictMat_ size is zero!!!";
+            DLOG(INFO) << "x0_delay is " << x0_delay[0] << " " << x0_delay[1] << " heading is " << x0_delay[2] << " speed is " << x0_delay[3];
+            return x0_delay;
         }
-        x0_pred = BB * uu + AA * x0 + gg;
-        x0_delay = x0_pred.block((tau - 1) * number_of_state_, 0, number_of_state_, 1);
-        // DLOG(INFO) << "x0_delay is " << x0_delay[0] << " " << x0_delay[1] << " heading is " << x0_delay[2] << " speed is " << x0_delay[3] << " x0 is " << x0[0] << " " << x0[1] << " heading is " << x0[2] << " speed is " << x0[3];
+        int tau = std::ceil(delay_ / dt_);
+        x0_delay = predictMat_.col(tau);
+        // Eigen::MatrixXd BB, AA, gg, x0_pred;
+        // int tau = std::ceil(delay_ / dt_);
+        // BB.setZero(number_of_state_ * tau, number_of_control_ * tau);
+        // AA.setZero(number_of_state_ * tau, number_of_state_);
+        // gg.setZero(number_of_state_ * tau, 1);
+        // x0_pred.setZero(number_of_state_ * tau, 1);
+        // std::vector<Eigen::MatrixXd> matrix_vec = setupBBAAggmatrix(tau, x0);
+        // BB = matrix_vec[0];
+        // AA = matrix_vec[1];
+        // gg = matrix_vec[2];
+        // Eigen::VectorXd uu(number_of_control_ * tau, 1);
+        // for (double t = delay_; t > 0; t -= dt_)
+        // {
+        //     int i = std::ceil(t / dt_);
+        //     uu.coeffRef((tau - i) * number_of_control_ + 0, 0) = historyInput_[i - 1][0];
+        //     uu.coeffRef((tau - i) * number_of_control_ + 1, 0) = historyInput_[i - 1][1];
+        // }
+        // x0_pred = BB * uu + AA * x0 + gg;
+        // x0_delay = x0_pred.block((tau - 1) * number_of_state_, 0, number_of_state_, 1);
+        DLOG(INFO) << "x0_delay is " << x0_delay[0] << " " << x0_delay[1] << " heading is " << x0_delay[2] << " speed is " << x0_delay[3] << " x0 is " << x0[0] << " " << x0[1] << " heading is " << x0[2] << " speed is " << x0[3];
         return x0_delay;
     }
 
@@ -381,7 +388,7 @@ namespace adaptive_open_local_planner
         {
             // -v_max_ <= v <= v_max_
             Cx.coeffRef(i, i * number_of_state_ + 3) = 1;
-            lx.coeffRef(i, 0) = 0;
+            lx.coeffRef(i, 0) = 0.01;
             ux.coeffRef(i, 0) = v_max_;
         }
         state_constrain_vec.emplace_back(Cx);
@@ -488,7 +495,7 @@ namespace adaptive_open_local_planner
         // DLOG(INFO) << "historyInput_ size is " << historyInput_.size();
         // DLOG(INFO) << "predictInput_ size is " << predictInput_.size();
         historyInput_ = predictInput_;
-        // DLOG(INFO) << "x0_observe is " << x0_observe(0) << " " << x0_observe(1) << " " << x0_observe(2) << " " << x0_observe(3);
+        DLOG(INFO) << "x0_observe is " << x0_observe(0) << " " << x0_observe(1) << " " << x0_observe(2) << " " << x0_observe(3);
         setWeighting();
         // VectorX x0 = compensateDelay(x0_observe);
         VectorX x0 = x0_observe;
@@ -603,8 +610,8 @@ namespace adaptive_open_local_planner
             predictInput_.emplace_back(solMat.col(i));
             // predictInput_[i] = solMat.col(i);
             // DLOG(INFO) << i << "th predicted input is: acceleration is " << solMat.col(i)[0] << " steering angle is " << solMat.col(i)[1];
-            // DLOG(INFO) << i << "th predicted state is " << predictMat_.col(i)[0] << " " << predictMat_.col(i)[1] << " heading is " << predictMat_.col(i)[2] << " speed is " << predictMat_.col(i)[3];
-            // DLOG(INFO) << "ref state is " << ref_trajectory_[i][0] << " " << ref_trajectory_[i][1] << " heading is " << ref_trajectory_[i][2] << " speed is " << ref_trajectory_[i][3];
+            DLOG(INFO) << i << "th predicted state is " << predictMat_.col(i)[0] << " " << predictMat_.col(i)[1] << " heading is " << predictMat_.col(i)[2] << " speed is " << predictMat_.col(i)[3];
+            DLOG(INFO) << "ref state is " << ref_trajectory_[i][0] << " " << ref_trajectory_[i][1] << " heading is " << ref_trajectory_[i][2] << " speed is " << ref_trajectory_[i][3];
         }
 
         // DLOG(INFO) << "solve QP success.";
