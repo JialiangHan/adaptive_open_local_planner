@@ -47,12 +47,14 @@ namespace adaptive_open_local_planner
         // {
         //     DLOG(INFO) << "ref element is " << element[0] << " " << element[1] << " heading is " << element[2] << " speed is " << element[3];
         // }
+        DLOG_IF(FATAL, ref_trajectory_.size() <= 0) << "ref_trajectory_ is zero!!!";
         if (N_ > ref_trajectory_.size())
         {
             DLOG(INFO) << "predict length " << N_ << " is larger than ref trajectory size!!" << ref_trajectory_.size();
             N_ = ref_trajectory_.size();
         }
 
+        total_length_ = findtrajetorylength(ref_trajectory_, ref_trajectory_.back());
         return true;
     }
     // good
@@ -83,8 +85,9 @@ namespace adaptive_open_local_planner
         // DLOG(INFO) << "in output";
         VectorU output;
         DLOG(INFO) << "current position is " << x0_observe[0] << " " << x0_observe[1] << " heading is " << x0_observe[2] << " speed is " << x0_observe[3];
-        VectorX x1 = findNext(x0_observe);
-        int status = solveMPC(x1);
+        // VectorX x1 = findNext(x0_observe);
+        // int status = solveMPC(x1);
+        int status = solveMPC(x0_observe);
         if (status != 1)
         {
             DLOG(INFO) << "solve MPC failed!!!";
@@ -153,10 +156,11 @@ namespace adaptive_open_local_planner
         gg.setZero(number_of_state_ * predicted_length, 1);
         // s0 is trajectory length
         double s0 = findtrajetorylength(ref_trajectory_, x0);
-        double total_length = findtrajetorylength(ref_trajectory_, ref_trajectory_.back());
+        // double total_length = findtrajetorylength(ref_trajectory_, ref_trajectory_.back());
         double last_phi = x0(2), x, y, phi;
         for (int i = 0; i < predicted_length; ++i)
         {
+            // DLOG(INFO) << i << "th loop, s0 is " << s0;
             updateAdBdgd(s0, x, y, last_phi, phi);
             // calculate big state-space matrices
             /* *                BB                AA
@@ -186,12 +190,13 @@ namespace adaptive_open_local_planner
             }
             s0 += desired_v_ * dt_;
 
-            s0 = s0 < total_length ? s0 : total_length;
+            s0 = s0 < total_length_ ? s0 : total_length_;
             // DLOG(INFO) << "s0 is " << s0 << " desired_v_ is " << desired_v_ << " dt is " << dt_;
         }
         result.emplace_back(BB);
         result.emplace_back(AA);
         result.emplace_back(gg);
+        // DLOG(INFO) << "out setupBBAAggmatrix";
         return result;
     }
     // looks good
@@ -248,10 +253,11 @@ namespace adaptive_open_local_planner
         Eigen::SparseMatrix<double> qx;
         qx.resize(number_of_state_ * N_, 1);
         double s0 = findtrajetorylength(ref_trajectory_, x0);
-        double total_length = findtrajetorylength(ref_trajectory_, ref_trajectory_.back());
+        // double total_length = findtrajetorylength(ref_trajectory_, ref_trajectory_.back());
         double x, y, last_phi = x0(2), phi;
         for (int i = 0; i < N_; ++i)
         {
+            // DLOG(INFO) << i << "th loop, s0 is " << s0;
             updateAdBdgd(s0, x, y, last_phi, phi);
             // cost function should be represented as follows:
             /* *
@@ -272,9 +278,10 @@ namespace adaptive_open_local_planner
             // DLOG(INFO) << "next point on ref trajectory is " << x << " " << y << " " << phi << " " << desired_v_;
             s0 += desired_v_ * dt_;
 
-            s0 = s0 < total_length ? s0 : total_length;
+            s0 = s0 < total_length_ ? s0 : total_length_;
             // DLOG(INFO) << "s0 is " << s0 << " desired_v_ is " << desired_v_ << " dt is " << dt_;
         }
+        // DLOG(INFO) << "out setupqx";
         return qx;
     }
     // good
@@ -330,7 +337,7 @@ namespace adaptive_open_local_planner
     void MPC::updateAdBdgd(const double &arc_length, double &x, double &y, double &last_phi, double &phi)
     {
         // DLOG(INFO) << "updateAdBdgd";
-        // DLOG(INFO) << "arc length is " << arc_length << " x is " << x << " y is " << y << " last heading is " << last_phi << " current phi is " << phi;
+
         double steering_angle;
         findPoint(arc_length, x, y, phi, desired_v_);
         if (phi - last_phi > M_PI)
@@ -344,6 +351,8 @@ namespace adaptive_open_local_planner
         steering_angle = phi - last_phi;
         last_phi = phi;
         linearization(phi, desired_v_, steering_angle);
+        // DLOG(INFO) << "arc length is " << arc_length << " x is " << x << " y is " << y << " last heading is " << last_phi << " current phi is " << phi;
+        // DLOG(INFO) << "updateAdBdgd out";
     }
 
     // looks good
@@ -495,7 +504,7 @@ namespace adaptive_open_local_planner
         // DLOG(INFO) << "historyInput_ size is " << historyInput_.size();
         // DLOG(INFO) << "predictInput_ size is " << predictInput_.size();
         historyInput_ = predictInput_;
-        DLOG(INFO) << "x0_observe is " << x0_observe(0) << " " << x0_observe(1) << " " << x0_observe(2) << " " << x0_observe(3);
+        // DLOG(INFO) << "x0_observe is " << x0_observe(0) << " " << x0_observe(1) << " " << x0_observe(2) << " " << x0_observe(3);
         setWeighting();
         // VectorX x0 = compensateDelay(x0_observe);
         VectorX x0 = x0_observe;
@@ -610,8 +619,8 @@ namespace adaptive_open_local_planner
             predictInput_.emplace_back(solMat.col(i));
             // predictInput_[i] = solMat.col(i);
             // DLOG(INFO) << i << "th predicted input is: acceleration is " << solMat.col(i)[0] << " steering angle is " << solMat.col(i)[1];
-            DLOG(INFO) << i << "th predicted state is " << predictMat_.col(i)[0] << " " << predictMat_.col(i)[1] << " heading is " << predictMat_.col(i)[2] << " speed is " << predictMat_.col(i)[3];
-            DLOG(INFO) << "ref state is " << ref_trajectory_[i][0] << " " << ref_trajectory_[i][1] << " heading is " << ref_trajectory_[i][2] << " speed is " << ref_trajectory_[i][3];
+            // DLOG(INFO) << i << "th predicted state is " << predictMat_.col(i)[0] << " " << predictMat_.col(i)[1] << " heading is " << predictMat_.col(i)[2] << " speed is " << predictMat_.col(i)[3];
+            // DLOG(INFO) << "ref state is " << ref_trajectory_[i][0] << " " << ref_trajectory_[i][1] << " heading is " << ref_trajectory_[i][2] << " speed is " << ref_trajectory_[i][3];
         }
 
         // DLOG(INFO) << "solve QP success.";
@@ -683,7 +692,7 @@ namespace adaptive_open_local_planner
         // DLOG(INFO) << "closest_index is " << closest_index << " " << length;
         return length;
     }
-    // good
+    // good,checked
     VectorX MPC::interpolate(const float &distance)
     {
         // DLOG(INFO) << "interpolate";
@@ -698,11 +707,11 @@ namespace adaptive_open_local_planner
         {
             DLOG(WARNING) << "ref trajectory not set!";
         }
-        double total_length = findtrajetorylength(ref_trajectory_, ref_trajectory_.back());
+        // double total_length = findtrajetorylength(ref_trajectory_, ref_trajectory_.back());
         double new_distance = 0, path_length_pre, path_length_succ;
-        if (distance > total_length)
+        if (distance > total_length_)
         {
-            // DLOG(INFO) << "distance : " << distance << " is larger than total length : " << total_length;
+            // DLOG(INFO) << "distance : " << distance << " is larger than total length : " << total_length_;
             point = ref_trajectory_.back();
             return point;
         }
@@ -711,14 +720,17 @@ namespace adaptive_open_local_planner
         {
             path_length_pre = findLength(ref_trajectory_, i);
             path_length_succ = findLength(ref_trajectory_, i + 1);
-            if (distance > path_length_pre && distance < path_length_succ)
+            // DLOG(INFO) << "index is " << index << " i is " << i << " pre distance is " << path_length_pre << " succ distance is " << path_length_succ << " distance is " << distance;
+            if (distance >= path_length_pre && distance <= path_length_succ)
             {
                 index = i;
                 new_distance = distance - path_length_pre;
                 break;
             }
         }
+        // DLOG(INFO) << "index is " << index << " pre distance is " << path_length_pre << " succ distance is " << path_length_succ << " new distance is " << new_distance << " distance is " << distance;
         point = interpolate(ref_trajectory_[index], ref_trajectory_[index + 1], new_distance);
+        // DLOG(INFO) << "interpolate out";
         return point;
     }
     // good
@@ -749,6 +761,7 @@ namespace adaptive_open_local_planner
         // DLOG(INFO) << "x1 is " << x1[0] << " " << x1[1] << " " << x1[2] << " " << x1[3];
         // DLOG(INFO) << "distance is " << distance << " total distance is " << total_distance << " percentage is " << percentage;
         // DLOG(INFO) << "point is " << point[0] << " " << point[1] << " " << point[2] << " " << point[3];
+        // DLOG(INFO) << "interpolate out";
         return point;
     }
 

@@ -1152,8 +1152,8 @@ namespace adaptive_open_local_planner
         float x, y, heading, velocity;
         for (size_t i = 0; i < 20; i++)
         {
-            x = 5.5;
-            y = 1 + 0.1 * i;
+            x = 5.7;
+            y = 0.8 + 0.1 * i;
             heading = 1.57;
             velocity = 1;
             if (y < current_state(1))
@@ -1166,8 +1166,8 @@ namespace adaptive_open_local_planner
         }
         for (size_t i = 0; i < 5; i++)
         {
-            x = 5.5;
-            y = 2.9 + 0.1 * i;
+            x = 5.7;
+            y = 2.8 + 0.1 * i;
             heading = 1.57;
             velocity = 1 - 0.25 * i;
             if (y < current_state(1))

@@ -11,8 +11,8 @@
 <!-- robot initial position in gazebo -->
   <arg name="x" default="2"/>
   <arg name="y" default="-3.2"/>
-  <arg name="z" default="0.05"/>
-  <arg name="roll" default="-45"/>
+  <arg name="z" default="0"/>
+  <arg name="roll" default="-1"/>
   <arg name="pitch" default="0"/>
   <arg name="yaw" default="0"/>
 

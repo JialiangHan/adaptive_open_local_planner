@@ -174,6 +174,8 @@ namespace adaptive_open_local_planner
         bool publishErrors(const std::vector<double> &error_vec);
 
     private:
+        float total_length_;
+
         int number_of_state_ = 4;   // state x y phi v
         int number_of_control_ = 2; // input a delta
         //    x_k+1=Ad_*x_k+Bd_*u_k+gd_;

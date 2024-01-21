@@ -74,5 +74,5 @@ AdaptiveOpenLocalPlannerROS:
   control_delay: 0.2
   heading_weighting: 1
   last_heading_weighting: 1
-  speed_weighting: 5
-  planning_frequency : 1.5
+  speed_weighting: 0
+  planning_frequency : 10
