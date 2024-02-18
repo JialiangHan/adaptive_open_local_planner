@@ -65,7 +65,6 @@ namespace adaptive_open_local_planner
     void PathEvaluator::CallbackPose(const geometry_msgs::PoseStamped::ConstPtr &pose, const std::string &topic_name)
     {
         float current_heading = tf::getYaw(pose->pose.orientation);
-        // move_flag__mutex_.lock();
         if (actual_position_x_vec_.size() == 0)
         {
             last_x_ = pose->pose.position.x;
@@ -73,7 +72,6 @@ namespace adaptive_open_local_planner
             actual_position_x_vec_.emplace_back(last_x_);
             actual_position_y_vec_.emplace_back(last_y_);
             actual_heading_vec_.emplace_back(current_heading);
-            // move_flag_ = true;
             // DLOG(INFO) << "moving.";
         }
         else
@@ -83,31 +81,13 @@ namespace adaptive_open_local_planner
             actual_heading_vec_.emplace_back(current_heading);
             last_x_ = pose->pose.position.x;
             last_y_ = pose->pose.position.y;
-            // if (std::abs(last_x_ - pose->pose.position.x) < 1e-1 ||
-            //     std::abs(last_y_ - pose->pose.position.y) < 1e-1)
-            // {
-            //     // move_flag_ = false;
-            //     // DLOG(INFO) << "not move.";
-            // }
-            // else
-            // {
-            //     // DLOG(INFO) << "moving.";
-            //     // move_flag_ = true;
-            //     actual_position_x_vec_.emplace_back(pose->pose.position.x);
-            //     actual_position_y_vec_.emplace_back(pose->pose.position.y);
-            //     actual_heading_vec_.emplace_back(current_heading);
-            //     last_x_ = pose->pose.position.x;
-            //     last_y_ = pose->pose.position.y;
-            // }
         }
-
-        // move_flag__mutex_.unlock();
     }
 
     void PathEvaluator::CallbackPositionError(const std_msgs::Float32::ConstPtr &position_error, const std::string &topic_name)
     {
         position_error_vec_.emplace_back(position_error->data);
-        // DLOG(INFO) << "position_error_vec_ is " << position_error->data;
+        DLOG(INFO) << "position_error_vec_ is " << position_error->data;
     }
 
     void PathEvaluator::CallbackHeadingError(const std_msgs::Float32::ConstPtr &heading_error, const std::string &topic_name)
@@ -334,7 +314,7 @@ namespace adaptive_open_local_planner
         matplotlibcpp::plot(actual_heading_vec_, {{"label", "actual heading"}});
         matplotlibcpp::legend({{"loc", "upper right"}});
         // DLOG(INFO) << "Plot curvature for topic: " << curvature_vec.first;
-        matplotlibcpp::ylim(-3, 3);
+        matplotlibcpp::ylim(0, 2);
         matplotlibcpp::title("heading");
         matplotlibcpp::grid(true);
         matplotlibcpp::subplot(2, 2, 3);

@@ -84,7 +84,7 @@ namespace adaptive_open_local_planner
     {
         // DLOG(INFO) << "in output";
         VectorU output;
-        DLOG(INFO) << "current position is " << x0_observe[0] << " " << x0_observe[1] << " heading is " << x0_observe[2] << " speed is " << x0_observe[3];
+        // DLOG(INFO) << "current position is " << x0_observe[0] << " " << x0_observe[1] << " heading is " << x0_observe[2] << " speed is " << x0_observe[3];
         // VectorX x1 = findNext(x0_observe);
         // int status = solveMPC(x1);
         int status = solveMPC(x0_observe);
@@ -699,7 +699,7 @@ namespace adaptive_open_local_planner
         VectorX point;
         if (distance <= 0)
         {
-            DLOG(INFO) << "distance : " << distance << " is smaller than 0!!!";
+            // DLOG(INFO) << "distance : " << distance << " is smaller than 0!!!";
             return ref_trajectory_.front();
         }
 
