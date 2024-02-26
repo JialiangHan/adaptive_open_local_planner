@@ -137,6 +137,10 @@ namespace adaptive_open_local_planner
 
         bool goalCheck(const std::vector<Eigen::Vector4d> &trajectory);
 
+        bool getActualTrajectory();
+
+        void calculateError(const Eigen::Vector4d &current_state, const Eigen::Vector4d &last_predicted_state);
+
     protected:
         /**
          * @brief Update internal obstacle vector based on occupied costmap cells
@@ -214,6 +218,8 @@ namespace adaptive_open_local_planner
 
         std::vector<Eigen::Vector4d> fakeTrajectory(const Eigen::Vector4d &current_state);
 
+        void setRefTrajectory(const std::vector<Eigen::Vector4d> &current_state);
+
     private:
         // Definition of member variables
 
@@ -269,6 +275,18 @@ namespace adaptive_open_local_planner
         std::shared_ptr<VelocityPlanner> velocity_planner_ptr_;
 
         MPC mpc_;
+
+        std::vector<Eigen::Vector4d> actual_trajectory_;
+
+        std::vector<Eigen::Vector4d> ref_trajectory_;
+        // for error calculation
+        Eigen::Vector4d last_predicted_state_;
+
+        std::vector<float> position_error_vec_;
+
+        std::vector<float> heading_error_vec_;
+
+        std::vector<float> velocity_error_vec_;
 
     public:
         EIGEN_MAKE_ALIGNED_OPERATOR_NEW

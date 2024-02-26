@@ -81,6 +81,8 @@ namespace adaptive_open_local_planner
 
         void Plot(const std::vector<Eigen::Vector4d> &path1, const Eigen::MatrixXd &path2);
 
+        void Plot(const std::vector<Eigen::Vector4d> &path1, const std::vector<Eigen::Vector4d> &path2, const std::vector<float> &position_error_vec, const std::vector<float> &heading_error_vec, const std::vector<float> &velocity_error_vec);
+
     private:
         ros::NodeHandle nh_;
 

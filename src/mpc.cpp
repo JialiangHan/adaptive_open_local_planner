@@ -604,14 +604,15 @@ namespace adaptive_open_local_planner
         // cost_vec_.emplace_back(cost);
         // DLOG(INFO) << "solve QP success.";
         // DLOG(INFO) << "predictInput_ size is " << predictInput_.size();
-        if (evaluate_path_)
-        {
-            std::vector<double> error_vec = findError(predictMat_);
-            // DLOG(INFO) << "position error is " << error_vec[0];
-            // DLOG(INFO) << "heading error is " << error_vec[1];
-            // DLOG(INFO) << "velocity error is " << error_vec[2];
-            publishErrors(error_vec);
-        }
+        // if (evaluate_path_)
+        // {
+        // error should be calculated between ref state and actual state(not predicted state)
+        //     std::vector<double> error_vec = findError(predictMat_);
+        //     // DLOG(INFO) << "position error is " << error_vec[0];
+        //     // DLOG(INFO) << "heading error is " << error_vec[1];
+        //     // DLOG(INFO) << "velocity error is " << error_vec[2];
+        //     publishErrors(error_vec);
+        // }
 
         predictInput_.clear();
         for (int i = 0; i < N_; ++i)

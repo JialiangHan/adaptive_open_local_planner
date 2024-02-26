@@ -160,7 +160,7 @@ namespace adaptive_open_local_planner
 
         double findCost(const Eigen::SparseMatrix<double> &hessian, const Eigen::VectorXd &control_vec, const Eigen::VectorXd &gradient_matrix);
         /**
-         * @brief find position error, heading error and velocity error for predict state.
+         * @brief find position error, heading error and velocity error between predicted state and ref state
          *
          * @param predictMat
          * @return std::vector<double> first is position error, second is heading error, last is velocity error

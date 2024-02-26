@@ -339,4 +339,89 @@ namespace adaptive_open_local_planner
         std::filesystem::create_directory(path);
         matplotlibcpp::save(path + file_name + time_mark + ".png");
     }
+
+    void PathEvaluator::Plot(const std::vector<Eigen::Vector4d> &path1, const std::vector<Eigen::Vector4d> &path2, const std::vector<float> &position_error_vec, const std::vector<float> &heading_error_vec, const std::vector<float> &velocity_error_vec)
+    {
+        // DLOG(INFO) << "Plot";
+        matplotlibcpp::ion();
+        matplotlibcpp::clf();
+        matplotlibcpp::figure_size(1000, 1000);
+        std::vector<float> x1, y1, x2, y2, ref_heading, actual_heading, ref_velocity, actual_velocity;
+        for (int i = 0; i < path2.size(); i++)
+        {
+            x1.emplace_back(path1[i](1));
+            y1.emplace_back(path1[i](0));
+            ref_heading.emplace_back(path1[i](2));
+            ref_velocity.emplace_back(path1[i](3));
+            x2.emplace_back(path2[i](1));
+            y2.emplace_back(path2[i](0));
+            actual_heading.emplace_back(path2[i](2));
+            actual_velocity.emplace_back(path2[i](3));
+            // DLOG(INFO) << "ref path is " << x1[i] << " " << y1[i] << " " << path1[i](2) << " " << path1[i](3);
+            // DLOG(INFO) << "mpc path is " << x2[i] << " " << y2[i] << " " << path2.col(i)(2) << " " << path2.col(i)(3);
+        }
+
+        matplotlibcpp::subplot(2, 3, 1);
+        // path
+        matplotlibcpp::plot(x1, y1, {{"label", "ref path"}});
+        matplotlibcpp::plot(x2, y2, {{"label", "actual path 1"}});
+        // matplotlibcpp::plot(actual_position_y_vec_, actual_position_x_vec_, {{"label", "actual path"}});
+        matplotlibcpp::legend({{"loc", "lower left"}});
+        // DLOG(INFO) << "Plot curvature for topic: " << curvature_vec.first;
+        matplotlibcpp::ylim(0, 10);
+        matplotlibcpp::title("path");
+        matplotlibcpp::grid(true);
+        matplotlibcpp::subplot(2, 3, 2);
+        // heading
+        matplotlibcpp::plot(ref_heading, {{"label", "ref heading"}});
+        matplotlibcpp::plot(actual_heading, {{"label", "actual heading 1"}});
+        // matplotlibcpp::plot(actual_heading_vec_, {{"label", "actual heading"}});
+        matplotlibcpp::legend({{"loc", "lower left"}});
+        // DLOG(INFO) << "Plot curvature for topic: " << curvature_vec.first;
+        matplotlibcpp::ylim(0, 2);
+        matplotlibcpp::title("heading");
+        matplotlibcpp::grid(true);
+        matplotlibcpp::subplot(2, 3, 3);
+        // velocity
+        matplotlibcpp::plot(ref_velocity, {{"label", "ref velocity"}});
+        matplotlibcpp::plot(actual_velocity, {{"label", "actual velocity 1"}});
+        // matplotlibcpp::plot(actual_velocity_vec_, {{"label", "actual velocity"}});
+        matplotlibcpp::legend({{"loc", "upper right"}});
+        // DLOG(INFO) << "Plot curvature for topic: " << curvature_vec.first;
+        matplotlibcpp::ylim(0.0, 1.5);
+        matplotlibcpp::title("velocity");
+        matplotlibcpp::grid(true);
+        // position error
+        matplotlibcpp::subplot(2, 3, 4);
+        matplotlibcpp::plot(position_error_vec, {{"label", "position error"}});
+        matplotlibcpp::legend({{"loc", "upper right"}});
+        // matplotlibcpp::ylim(0.0, 1.5);
+        matplotlibcpp::title("position error");
+        matplotlibcpp::grid(true);
+        // heading error
+        matplotlibcpp::subplot(2, 3, 5);
+        matplotlibcpp::plot(heading_error_vec, {{"label", "heading error"}});
+        matplotlibcpp::legend({{"loc", "upper right"}});
+        // matplotlibcpp::ylim(0.0, 1.5);
+        matplotlibcpp::title("heading error");
+        matplotlibcpp::grid(true);
+        // velocity error
+        matplotlibcpp::subplot(2, 3, 6);
+        matplotlibcpp::plot(velocity_error_vec, {{"label", "velocity error"}});
+        matplotlibcpp::legend({{"loc", "upper right"}});
+        // matplotlibcpp::ylim(0.0, 1.5);
+        matplotlibcpp::title("velocity error");
+        matplotlibcpp::grid(true);
+
+        matplotlibcpp::pause(0.1);
+        std::string file_name = "path";
+
+        std::string path = "/home/jialiang/Code/thesis_ws/src/adaptive_open_local_planner/tests/";
+
+        auto now = std::time(0);
+        std::string time_mark = std::to_string(now);
+
+        std::filesystem::create_directory(path);
+        matplotlibcpp::save(path + file_name + time_mark + ".png");
+    }
 }
